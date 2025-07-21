@@ -1,7 +1,11 @@
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Type, Union
 from core.LiveAgentClient import LiveAgentClient
 from core.Ticket import Ticket
+from core.Agent import Agent
 import asyncio
+
+ClientType = Union[Type[Ticket], Type[Agent]]
+InstanceType = Union[Ticket, Agent]
 
 class Extractor:
     def __init__(self, api_key: str, max_page: int, per_page: int):
@@ -17,7 +21,7 @@ class Extractor:
         print(f"Connection to '{client.base_url}/ping' successful!")
         return True
 
-    async def create_clients(self) -> Tuple[Optional[LiveAgentClient], Optional[Ticket]]:
+    async def create_clients(self, *resource_classes: ClientType) -> Tuple[Optional[LiveAgentClient], List[InstanceType]]:
         try:
             la_client = LiveAgentClient(self.api_key)
             await la_client.__aenter__()
@@ -26,17 +30,17 @@ class Extractor:
                 await la_client.__aexit__(None, None, None)
                 return None, None
 
-            ticket_client = Ticket(la_client)
-            return la_client, ticket_client
+            resources = [resource_class(la_client) for resource_class in resource_classes]
+            return la_client, resources
         except Exception as e:
             print(f"Failed to initialize LiveAgent client: {e}")
             return None, None
 
     async def extract_tickets(self) -> Optional[List[Dict[str, Any]]]:
-        client, ticket_client = await self.create_clients()
+        client, [ticket_client] = await self.create_clients(Ticket)
         if not client or not ticket_client:
             return None
-        
+
         try:
             tickets = await ticket_client.fetch_tickets(self.max_page, self.per_page)
             return tickets
@@ -47,7 +51,7 @@ class Extractor:
             await client.__aexit__(None, None, None)
 
     async def extract_ticket_messages(self) -> Optional[List[Dict[str, Any]]]:
-        client, ticket_client = await self.create_clients()
+        client, [ticket_client] = await self.create_clients(Ticket)
         if not client or not ticket_client:
             return None
         
@@ -55,7 +59,7 @@ class Extractor:
             tickets = await ticket_client.fetch_tickets(self.max_page, self.per_page)
             ticket_ids = [ticket["id"] for ticket in tickets]
             print(f"Found {len(ticket_ids)} characters!")
-            messages = await self._fetch_all(ticket_client, ticket_ids)
+            messages = await self._fetch_all_ticket_messages(ticket_client, ticket_ids)
             return messages
         except Exception as e:
             print(f"Exception occurred while extracting ticket messages from LiveAgent API: '{e}'")
@@ -63,7 +67,21 @@ class Extractor:
         finally:
             await client.__aexit__(None, None, None)
 
-    async def _fetch_all(self, client: Ticket, ticket_ids: List[str]) -> List[Dict[str, Any]]:
+    async def extract_agents(self) -> Optional[List[Dict[str, Any]]]:
+        client, [agent_client] = await self.create_clients(Agent)
+        if not client or not agent_client:
+            return None
+
+        try:
+            agents = await agent_client.get_agents(self.max_page, self.per_page)
+            return agents
+        except Exception as e:
+            print(f"Exception occurred while extracting agents from LiveAgent API: '{e}'")
+            return None
+        finally:
+            await client.__aexit__(None, None, None)
+
+    async def _fetch_all_ticket_messages(self, client: Ticket, ticket_ids: List[str]) -> List[Dict[str, Any]]:
         tasks = [
             client.fetch_ticket_messages(
                 ticket_id=ticket_id,
