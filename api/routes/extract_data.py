@@ -2,17 +2,50 @@ from config.config import LIVEAGENT_API_KEY
 from fastapi.responses import JSONResponse
 from core.DataExtractor import Extractor
 from fastapi import APIRouter
+from fastapi import status
 
 router = APIRouter()
 
 @router.post("/process-tickets")
 async def process_tickets():
-    extractor = Extractor(LIVEAGENT_API_KEY, 1, 1)
-    data = await extractor.extract_tickets()
-    return JSONResponse(data)
+    try:
+        extractor = Extractor(LIVEAGENT_API_KEY, 1, 1)
+        data = await extractor.extract_tickets()
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "success",
+                "count": len(data),
+                "data": data
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": str(e)
+            }
+        )
 
 @router.post("/process-ticket-messages")
 async def process_ticket_messages():
-    extractor = Extractor(LIVEAGENT_API_KEY, 1, 1)
-    data = await extractor.extract_ticket_messages()
-    return JSONResponse(data)
+    try:
+        extractor = Extractor(LIVEAGENT_API_KEY, 1, 1)
+        data = await extractor.extract_ticket_messages()
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "status": "success",
+                "count": len(data),
+                "data": data
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": "error",
+                "message": str(e)
+            }
+        )
