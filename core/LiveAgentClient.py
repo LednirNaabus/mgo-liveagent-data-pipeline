@@ -1,5 +1,5 @@
 from config.constants import BASE_URL, THROTTLE_DELAY
-from typing import Dict, Tuple, Any, Optional
+from typing import Dict, Tuple, Any, Optional, List
 import asyncio
 import aiohttp
 
@@ -106,3 +106,31 @@ class LiveAgentClient:
         except Exception as e:
             print(f"Exception occurred while making request to '{full_url}': {e}")
             return None
+
+    async def paginate(self, payload: Dict[str, Any], endpoint: str = None, max_pages: int = 5) -> List[Dict[str, Any]]:
+        all_data = []
+        page = 1
+        while page <= max_pages:
+            payload["_page"] = page
+            print(f"Fetching page {page} from {endpoint}")
+            try:
+                data = await self.make_request(
+                    endpoint,
+                    params=payload
+                )
+                if not data:
+                    print(f"No data returned for page {page}, stopping pagination.")
+                    break
+                if isinstance(data, dict) and 'data' in data:
+                    items = data['data']
+                else:
+                    items = data if isinstance(data, list) else []
+                if not items:
+                    print(f"No items in page {page}, stopping pagination.")
+                    break
+                all_data.extend(items)
+                page += 1
+            except Exception as e:
+                print(f"Exception occurred while fetching ticket page: {page}: {e}")
+                break
+        return all_data

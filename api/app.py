@@ -1,8 +1,8 @@
-from api.routes import extract_data
+from api import (extract_router)
 from fastapi import FastAPI
 
-app = FastAPI()
-app.include_router(extract_data.router)
+app = FastAPI(title="Mechanigo LiveAgent Data Pipeline", version="0.1.0")
+app.include_router(extract_router, prefix="/extract", tags=["extract"])
 
 @app.get("/")
 def root():

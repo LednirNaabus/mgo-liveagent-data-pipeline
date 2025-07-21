@@ -6,6 +6,10 @@ from fastapi import status
 
 router = APIRouter()
 
+# 1. Extract data from LiveAgent API
+# 2. Parse according to requirements
+# 3. Load parsed data to BigQuery
+
 @router.post("/process-tickets")
 async def process_tickets():
     try:
