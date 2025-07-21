@@ -1,8 +1,10 @@
-from config.config import LIVEAGENT_API_KEY
-from fastapi.responses import JSONResponse
-from core.DataExtractor import Extractor
-from fastapi import APIRouter
-from fastapi import status
+from api.common import (
+    LIVEAGENT_API_KEY,
+    JSONResponse,
+    Extractor,
+    APIRouter,
+    status
+)
 
 router = APIRouter()
 

@@ -1,5 +1,7 @@
-from api.routes.extract_data import router as extract_router
+from api.routes.tickets import router as ticket_router
+from api.routes.agents import router as agent_router
 
 __all__ = [
-    "extract_router"
+    "ticket_router",
+    "agent_router"
 ]

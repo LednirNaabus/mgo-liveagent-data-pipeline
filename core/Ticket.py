@@ -42,8 +42,8 @@ class Ticket:
             }
             messages_data = await self.client.paginate(
                 message_payload,
-                self.endpoint,
-                max_pages
+                endpoint=f"{self.endpoint}/{ticket_id}/messages",
+                max_pages=max_pages
             )
             return messages_data
         except Exception as e:
