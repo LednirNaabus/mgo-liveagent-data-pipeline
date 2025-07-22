@@ -107,7 +107,7 @@ class LiveAgentClient:
             print(f"Exception occurred while making request to '{full_url}': {e}")
             return None
 
-    async def paginate(self, payload: Dict[str, Any], endpoint: str = None, max_pages: int = 5) -> List[Dict[str, Any]]:
+    async def paginate(self, payload: Dict[str, Any] = None, endpoint: str = None, max_pages: int = 5) -> List[Dict[str, Any]]:
         all_data = []
         page = 1
         while page <= max_pages:
