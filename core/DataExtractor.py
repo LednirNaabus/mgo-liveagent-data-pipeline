@@ -2,13 +2,14 @@ from typing import List, Dict, Any, Tuple, Optional, Type, Union
 from core.LiveAgentClient import LiveAgentClient
 from core.Ticket import Ticket
 from core.Agent import Agent
+from core.User import User
 import asyncio
 
-ClientType = Union[Type[Ticket], Type[Agent]]
-InstanceType = Union[Ticket, Agent]
+ClientType = Union[Type[Ticket], Type[Agent], Type[User]]
+InstanceType = Union[Ticket, Agent, User]
 
 class Extractor:
-    def __init__(self, api_key: str, max_page: int, per_page: int):
+    def __init__(self, api_key: str, max_page: int = None, per_page: int = None):
         self.api_key = api_key
         self.max_page = max_page
         self.per_page = per_page
@@ -50,17 +51,55 @@ class Extractor:
         finally:
             await client.__aexit__(None, None, None)
 
-    async def extract_ticket_messages(self) -> Optional[List[Dict[str, Any]]]:
-        client, [ticket_client] = await self.create_clients(Ticket)
-        if not client or not ticket_client:
-            return None
+    # async def extract_ticket_messages(self) -> Optional[List[Dict[str, Any]]]:
+    #     client, [ticket_client] = await self.create_clients(Ticket)
+    #     if not client or not ticket_client:
+    #         return None
         
+    #     try:
+    #         tickets = await ticket_client.fetch_tickets(self.max_page, self.per_page)
+    #         ticket_ids = [ticket["id"] for ticket in tickets]
+    #         print(f"Found {len(ticket_ids)} characters!")
+    #         messages = await self._fetch_all_ticket_messages(ticket_client, ticket_ids)
+    #         return messages
+    #     except Exception as e:
+    #         print(f"Exception occurred while extracting ticket messages from LiveAgent API: '{e}'")
+    #         return None
+    #     finally:
+    #         await client.__aexit__(None, None, None)
+    async def extract_ticket_messages(self) -> Optional[List[Dict[str, Any]]]:
+        client, [ticket_client, user_client] = await self.create_clients(Ticket, User)
+        if not all([client, ticket_client, user_client]):
+            return None
+
+        ticket_client._set_user_client(user_client)
+
         try:
             tickets = await ticket_client.fetch_tickets(self.max_page, self.per_page)
-            ticket_ids = [ticket["id"] for ticket in tickets]
-            print(f"Found {len(ticket_ids)} characters!")
-            messages = await self._fetch_all_ticket_messages(ticket_client, ticket_ids)
-            return messages
+            ticket_contexts = ticket_client._get_ticket_context(tickets)
+
+            parallel_fetch = await ticket_client.fetch_messages_by_ticket_contexts(
+                ticket_contexts=ticket_contexts,
+                max_pages=self.max_page,
+                per_page=self.per_page
+            )
+
+            all_processed_messages = []
+            for ticket_id, owner_name, agent_id, messages in parallel_fetch:
+                agent_name = ticket_client.agents_cache.get(agent_id, "Unknown Agent")
+                for msg_grp in messages:
+                    msg_grp_data = ticket_client._process_message_group(
+                        msg_grp, ticket_id, owner_name, agent_id, agent_name
+                    )
+                    nested_msgs = ticket_client._process_nested_messages(
+                        msg_grp, msg_grp_data, owner_name, agent_id
+                    )
+
+                    if nested_msgs:
+                        all_processed_messages.extend(nested_msgs)
+                    else:
+                        all_processed_messages.append(msg_grp_data)
+            return all_processed_messages
         except Exception as e:
             print(f"Exception occurred while extracting ticket messages from LiveAgent API: '{e}'")
             return None
@@ -81,7 +120,22 @@ class Extractor:
         finally:
             await client.__aexit__(None, None, None)
 
-    async def _fetch_all_ticket_messages(self, client: Ticket, ticket_ids: List[str]) -> List[Dict[str, Any]]:
+    async def extract_users(self) -> Optional[List[Dict[str, Any]]]:
+        client, [user_client] = await self.create_clients(User)
+        if not client or not user_client:
+            return None
+
+        try:
+            # users = await user_client.get_user()
+            pass
+        except Exception as e:
+            print(f"Exception occurred while fetching users from LiveAgent API: '{e}'")
+            return None
+        finally:
+            await client.__aexit__(None, None, None)
+
+    async def _fetch_raw_ticket_messages(self, client: Ticket, ticket_ids: List[str]) -> List[Dict[str, Any]]:
+        """**For development only**. Fetch raw ticket messages from LiveAgent API `/ticket` endpoint."""
         tasks = [
             client.fetch_ticket_messages(
                 ticket_id=ticket_id,
