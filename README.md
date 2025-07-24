@@ -23,3 +23,5 @@
 - [ ] Users extraction
 
 - [ ] BigQuery integration
+
+- [ ] Refactor again
