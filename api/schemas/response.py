@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, List, Any
 from dataclasses import dataclass
 from enum import Enum
 
@@ -13,4 +13,10 @@ class APIResponse:
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     status_code: Optional[int] = None
+    status: ResponseStatus = ResponseStatus.SUCCESS
+
+@dataclass
+class TicketAPIResponse:
+    count: str
+    data: List[Dict[str, Any]]
     status: ResponseStatus = ResponseStatus.SUCCESS
