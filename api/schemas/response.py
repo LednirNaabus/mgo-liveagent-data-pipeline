@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from enum import Enum
 
 class ResponseStatus(Enum):
-    SUCESS = "success"
+    SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
 
+@dataclass
 class APIResponse:
     success: bool
     data: Optional[Dict[str, Any]] = None
