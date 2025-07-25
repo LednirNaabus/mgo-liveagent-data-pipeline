@@ -1,6 +1,5 @@
 from api.schemas.response import TicketAPIResponse, ResponseStatus
 from core.LiveAgentClient import LiveAgentClient
-from typing import Optional, Tuple
 from core.Ticket import Ticket
 import aiohttp
 import logging
