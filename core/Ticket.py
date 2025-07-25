@@ -2,6 +2,7 @@ from config.constants import LIVEAGENT_MGO_SYSTEM_USER_ID
 from api.schemas.response import TicketAPIResponse
 from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any
+import pandas as pd
 import aiohttp
 import logging
 
@@ -65,11 +66,6 @@ class Ticket:
 
         return all_data
 
-    async def process_tickets(self, tickets: List[Dict[str, Any]]):
-        from datetime import datetime
-        tickets['datetime_extracted'] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        return tickets
-
     async def fetch_tickets(
         self,
         session: aiohttp.ClientSession,
@@ -91,7 +87,7 @@ class Ticket:
             ticket['date_deleted'] = ticket.get('date_deleted')
             ticket['date_resolved'] = ticket.get('date_resolved')
 
-        return await self.process_tickets(data[0])
+        return pd.DataFrame(data)
 
     async def fetch_ticket_message(
         self,

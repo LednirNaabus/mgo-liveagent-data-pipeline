@@ -1,4 +1,5 @@
 from api.schemas.response import TicketAPIResponse, ResponseStatus
+from core.extract.ticket_processor import process_tickets
 from core.LiveAgentClient import LiveAgentClient
 from core.Ticket import Ticket
 import aiohttp
@@ -35,23 +36,24 @@ class Extractor:
         self.per_page = per_page
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
-        self.session = session
+        self.session = session 
 
     async def extract_tickets(self) -> TicketAPIResponse:
         try:
             tickets_raw = await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
-            if not tickets_raw:
+            tickets_processed = process_tickets(tickets_raw)
+            if tickets_processed.empty:
                 return TicketAPIResponse(
                     status=ResponseStatus.ERROR,
                     count="0",
                     data=[],
                     message="No tickets fetched!"
                 )
-            # return tickets_raw
+            tickets = tickets_processed.to_dict(orient="records")
             return TicketAPIResponse(
                 status=ResponseStatus.SUCCESS,
-                count=str(len(tickets_raw)),
-                data=tickets_raw
+                count=str(len(tickets)),
+                data=tickets
             )
         except Exception as e:
             logging.info(f"Exception occurred while extracting tickets: {e}")
@@ -60,10 +62,3 @@ class Extractor:
                 data=[],
                 status=ResponseStatus.ERROR
             )
-
-    async def extract_ticket_message(self):
-        try:
-            pass
-        except Exception as e:
-            logging.info(f"Exception occurred during extraction of ticket messages: {e}")
-            return None
