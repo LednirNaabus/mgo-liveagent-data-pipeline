@@ -1,7 +1,7 @@
 from config.constants import LIVEAGENT_MGO_SYSTEM_USER_ID
 from api.schemas.response import TicketAPIResponse
 from core.LiveAgentClient import LiveAgentClient
-from typing import Dict, Any
+from typing import Dict, List, Any
 import aiohttp
 import logging
 
@@ -65,12 +65,17 @@ class Ticket:
 
         return all_data
 
+    async def process_tickets(self, tickets: List[Dict[str, Any]]):
+        from datetime import datetime
+        tickets['datetime_extracted'] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        return tickets
+
     async def fetch_tickets(
         self,
         session: aiohttp.ClientSession,
         max_pages: int = 5,
         per_page: int = 10
-    ) -> TicketAPIResponse:
+    ) -> List[Dict[str, Any]]:
         payload = self._default_payload()
         payload["_perPage"] = per_page
         data = await self.paginate(
@@ -85,7 +90,8 @@ class Ticket:
             ticket['date_due'] = ticket.get('date_due')
             ticket['date_deleted'] = ticket.get('date_deleted')
             ticket['date_resolved'] = ticket.get('date_resolved')
-        return data
+
+        return await self.process_tickets(data[0])
 
     async def fetch_ticket_message(
         self,

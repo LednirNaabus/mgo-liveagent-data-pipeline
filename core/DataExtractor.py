@@ -14,6 +14,15 @@ logging.basicConfig(
 # 2. Perform any parsing
 # 3. Return
 class Extractor:
+    """
+    The `Extractor` class is the core of the pipeline.
+
+    Handles the following operations:
+
+    1. Calls each endpoint from MechaniGo LiveAgent API (`/tickets`, `/users`, `/agents`).
+    2. Parses the data according to requirements and needs.
+    3. Prepares the parsed data for uploading to BigQuery.
+    """
     def __init__(
         self,
         api_key: str,
@@ -38,7 +47,12 @@ class Extractor:
                     data=[],
                     message="No tickets fetched!"
                 )
-            return tickets_raw
+            # return tickets_raw
+            return TicketAPIResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(tickets_raw)),
+                data=tickets_raw
+            )
         except Exception as e:
             logging.info(f"Exception occurred while extracting tickets: {e}")
             return TicketAPIResponse(
