@@ -10,11 +10,12 @@ import logging
 
 class LiveAgentClient:
     """Live Agent base client/class."""
-    def __init__(self, api_key: str, max_concurrent_requests: int = 10):
+    def __init__(self, api_key: str, session: aiohttp.ClientSession, max_concurrent_requests: int = 10):
         if not api_key:
             raise ValueError("API key cannot be empty.")
 
         self.api_key = api_key
+        self.session = session
         self.base_url = BASE_URL
         self.headers = self.default_headers()
         self.throttle_delay = THROTTLE_DELAY
@@ -129,4 +130,3 @@ class LiveAgentClient:
                 error=error_msg,
                 status=ResponseStatus.ERROR
             )
-            pass
