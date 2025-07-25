@@ -31,11 +31,13 @@ class Extractor:
         api_key: str,
         max_page: int,
         per_page: int,
+        table_name: str,
         session: aiohttp.ClientSession
     ):
         self.api_key = api_key
         self.max_page = max_page
         self.per_page = per_page
+        self.table_name = table_name
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
         self.bigquery = BigQuery()
@@ -57,8 +59,8 @@ class Extractor:
             logging.info("Generating schema and loading data to BigQuery...")
             self.bigquery.ensure_dataset()
             schema = self.bigquery.generate_schema(tickets_processed)
-            self.bigquery.ensure_table("TICKETS_TESTING", schema)
-            self.bigquery.load_dataframe(tickets_processed, "TICKETS_TESTING")
+            self.bigquery.ensure_table(self.table_name, schema)
+            self.bigquery.load_dataframe(tickets_processed, self.table_name)
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -75,4 +77,26 @@ class Extractor:
                 count="0",
                 data=[],
                 status=ResponseStatus.ERROR
+            )
+
+    async def fetch_bq_tickets(self) -> TicketAPIResponse:
+        try:
+            from config.constants import PROJECT_ID, DATASET_NAME
+            query = """
+            SELECT * FROM `{}.{}.{}`
+            """.format(PROJECT_ID, DATASET_NAME, self.table_name)
+            df = self.bigquery.sql_query_bq(query)
+            df = df.to_dict(orient="records")
+            return TicketAPIResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(df)),
+                data=df
+            )
+        except Exception as e:
+            logging.info(f"Exception occurred while querying tickets from BigQuery: {e}")
+            return TicketAPIResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR,
+                message="Table not found."
             )

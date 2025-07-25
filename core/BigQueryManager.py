@@ -107,3 +107,12 @@ class BigQuery:
                 )
             )
         return schema
+
+    def sql_query_bq(self, query: str, return_data: bool = True) -> pd.DataFrame:
+        query_job = self.client.query(query)
+        if return_data:
+            df = query_job.to_dataframe()
+            return df
+        else:
+            query_job.result()
+            return None
