@@ -1,9 +1,7 @@
 """
 Main configuration file for the project.
 """
-from google.oauth2 import service_account
 from config.constants import BASE_URL
-from google.cloud import bigquery
 from dotenv import load_dotenv
 import pytz
 import os
