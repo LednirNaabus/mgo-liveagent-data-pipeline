@@ -14,7 +14,7 @@
 
 ---
 
-## To Do (As of 7/21/2025):
+## To Do (As of 7/25/2025):
 
 - [ ] Fix ticket messages extraction
 
@@ -25,3 +25,12 @@
 - [ ] BigQuery integration
 
 - [ ] Refactor again
+
+    - [ ] Do something about parsing the tickets (`TicketAPIResponse`)
+
+---
+
+# Notes
+
+1. `/process-tickets` -> Fetch from API then upload to BigQuery (`POST`)
+1. `/tickets` -> Get from BigQuery (`GET`)
