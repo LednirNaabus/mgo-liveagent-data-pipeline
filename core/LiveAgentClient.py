@@ -7,6 +7,10 @@ import logging
 
 # TO DO:
 # 1. Custom Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 class LiveAgentClient:
     """Live Agent base client/class."""
