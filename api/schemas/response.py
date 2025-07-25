@@ -20,3 +20,4 @@ class TicketAPIResponse:
     status: ResponseStatus = None
     count: str = None
     data: List[Dict[str, Any]] = None
+    message: str = None
