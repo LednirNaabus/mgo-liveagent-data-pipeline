@@ -10,13 +10,13 @@ class ResponseStatus(Enum):
 @dataclass
 class APIResponse:
     success: bool
+    status: ResponseStatus = ResponseStatus.SUCCESS
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     status_code: Optional[int] = None
-    status: ResponseStatus = ResponseStatus.SUCCESS
 
 @dataclass
 class TicketAPIResponse:
-    count: str
-    data: List[Dict[str, Any]]
-    status: ResponseStatus = ResponseStatus.SUCCESS
+    status: ResponseStatus = None
+    count: str = None
+    data: List[Dict[str, Any]] = None

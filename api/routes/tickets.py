@@ -1,9 +1,8 @@
+from api.schemas.response import TicketAPIResponse, ResponseStatus
 from core.factory import create_extractor
 from api.common import (
-    JSONResponse,
     APIRouter,
     Request,
-    status
 )
 
 router = APIRouter()
@@ -13,16 +12,11 @@ router = APIRouter()
 # 3. Load data to BigQuery
 @router.get("/process-tickets")
 async def process_tickets(request: Request):
-    try:
-        session = request.app.state.aiohttp_session
-        extractor = create_extractor(request, 1, 5, session)
-        data = await extractor.extract_tickets()
-        return data
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "status": "error",
-                "message": str(e)
-            }
-        )
+    session = request.app.state.aiohttp_session
+    extractor = create_extractor(request, 1, 5, session)
+    data = await extractor.extract_tickets()
+    return TicketAPIResponse(
+        status=ResponseStatus.SUCCESS,
+        count=str(len(data)),
+        data=data
+    )
