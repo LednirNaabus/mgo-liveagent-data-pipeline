@@ -1,6 +1,6 @@
 from core.LiveAgentClient import LiveAgentClient
+from typing import Optional, Tuple
 from core.Ticket import Ticket
-from typing import Optional
 import aiohttp
 
 class Extractor:
@@ -9,20 +9,18 @@ class Extractor:
         api_key: str,
         max_page: int,
         per_page: int,
-        ticket: Optional[Ticket] = None
+        session: aiohttp.ClientSession
     ):
         self.api_key = api_key
         self.max_page = max_page
         self.per_page = per_page
-        self.ticket = ticket
+        self.client = LiveAgentClient(api_key, session)
+        self.ticket = Ticket(self.client)
+        self.session = session
 
-    async def extract_tickets(
-        self,
-        session: aiohttp.ClientSession
-    ):
+    async def extract_tickets(self):
         try:
-            s = await self.ticket.fetch_tickets(session, 1, 5)
-            return s
+            return await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
         except Exception as e:
             print(f"Exception occurred while extracting tickets: {e}")
             return None
