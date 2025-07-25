@@ -8,7 +8,7 @@ import os
 
 load_dotenv()
 
-LIVEAGENT_API_KEY = os.getenv('')
+LIVEAGENT_API_KEY = os.getenv('LIVEAGENT_API_KEY')
 try:
     if not LIVEAGENT_API_KEY:
         raise ValueError(f"Missing API key for '{BASE_URL}'!")

@@ -1,7 +1,9 @@
 from api.schemas.response import TicketAPIResponse, ResponseStatus
 from core.extract.ticket_processor import process_tickets
 from core.LiveAgentClient import LiveAgentClient
+from core.BigQueryManager import BigQuery
 from core.Ticket import Ticket
+import pandas as pd
 import aiohttp
 import logging
 
@@ -36,6 +38,7 @@ class Extractor:
         self.per_page = per_page
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
+        self.bigquery = BigQuery()
         self.session = session 
 
     async def extract_tickets(self) -> TicketAPIResponse:
@@ -49,7 +52,18 @@ class Extractor:
                     data=[],
                     message="No tickets fetched!"
                 )
-            tickets = tickets_processed.to_dict(orient="records")
+
+            # Load to BigQuery
+            logging.info("Generating schema and loading data to BigQuery...")
+            self.bigquery.ensure_dataset()
+            schema = self.bigquery.generate_schema(tickets_processed)
+            self.bigquery.ensure_table("TICKETS_TESTING", schema)
+            self.bigquery.load_dataframe(tickets_processed, "TICKETS_TESTING")
+            tickets = (
+                tickets_processed
+                .where(pd.notnull(tickets_processed), None)
+                .to_dict(orient="records")
+            )
             return TicketAPIResponse(
                 status=ResponseStatus.SUCCESS,
                 count=str(len(tickets)),

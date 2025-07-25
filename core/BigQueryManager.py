@@ -42,6 +42,28 @@ class BigQuery:
             table = bigquery.Table(table_id, schema=schema)
             self.client.create_table(table)
 
+    def load_dataframe(
+        self,
+        df: pd.DataFrame,
+        table_name: str,
+        write_disposition: str = "WRITE_APPEND"
+    ):
+        table_id = f"{self.client.project}.{self.dataset_id}.{table_name}"
+
+        try:
+            job = self.client.load_table_from_dataframe(
+                df,
+                table_id,
+                job_config=bigquery.LoadJobConfig(
+                    write_disposition=write_disposition
+                )
+            )
+            job.result()
+        except NotFound:
+            raise ValueError(f"Table {table_id} not found.")
+        except Exception as e:
+            raise RuntimeError(f"Failed to load data into {table_id}: {e}")
+
     def generate_schema(self, df: pd.DataFrame) -> List[SchemaField]:
         TYPE_MAPPING = {
             "i": "INTEGER",

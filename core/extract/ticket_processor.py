@@ -1,4 +1,3 @@
-from utils.df_utils import fill_nan_values
 from utils.date_utils import set_timezone
 from config.config import MNL_TZ
 import pandas as pd
@@ -20,5 +19,9 @@ def process_tickets(tickets: pd.DataFrame) -> pd.DataFrame:
         "datetime_extracted",
         target_tz=MNL_TZ
     )
-    tickets = fill_nan_values(tickets)
+
+    # Normalize 'custom_fields'
+    tickets["custom_fields"] = tickets["custom_fields"].apply(
+        lambda x: x[0] if isinstance(x, list) and len(x) == 1 and isinstance(x[0], dict) else None
+    )
     return tickets
