@@ -10,6 +10,10 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# FLOW:
+# 1. Call from LiveAgentAPI/{tickets,users,agents}
+# 2. Perform any parsing
+# 3. Return
 class Extractor:
     def __init__(
         self,
@@ -27,7 +31,15 @@ class Extractor:
 
     async def extract_tickets(self) -> TicketAPIResponse:
         try:
-            return await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
+            tickets_raw = await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
+            if not tickets_raw:
+                return TicketAPIResponse(
+                    status=ResponseStatus.ERROR,
+                    count="0",
+                    data=[],
+                    message="No tickets fetched!"
+                )
+            return tickets_raw
         except Exception as e:
             logging.info(f"Exception occurred while extracting tickets: {e}")
             return TicketAPIResponse(

@@ -73,22 +73,19 @@ class Ticket:
     ) -> TicketAPIResponse:
         payload = self._default_payload()
         payload["_perPage"] = per_page
-        try:
-            data = await self.paginate(
-                session,
-                self.endpoint,
-                payload,
-                max_pages
-            )
+        data = await self.paginate(
+            session,
+            self.endpoint,
+            payload,
+            max_pages
+        )
 
-            for ticket in data:
-                ticket['tags'] = ','.join(ticket['tags']) if ticket.get('tags') else ''
-                ticket['date_due'] = ticket.get('date_due')
-                ticket['date_deleted'] = ticket.get('date_deleted')
-                ticket['date_resolved'] = ticket.get('date_resolved')
-            return data
-        except Exception as e:
-            pass
+        for ticket in data:
+            ticket['tags'] = ','.join(ticket['tags']) if ticket.get('tags') else ''
+            ticket['date_due'] = ticket.get('date_due')
+            ticket['date_deleted'] = ticket.get('date_deleted')
+            ticket['date_resolved'] = ticket.get('date_resolved')
+        return data
 
     async def fetch_ticket_message(
         self,
@@ -97,19 +94,15 @@ class Ticket:
         per_page: int,
         session: aiohttp.ClientSession
     ) -> TicketAPIResponse:
-        try:
-            message_payload = {
-                "_page": 1,
-                "_perPage": per_page
-            }
+        message_payload = {
+            "_page": 1,
+            "_perPage": per_page
+        }
 
-            messages_data = await self.paginate(
-                session,
-                endpoint=f"{self.endpoint}/{ticket_id}/messages",
-                payload=message_payload,
-                max_pages=max_page
-            )
-            return messages_data
-        except Exception as e:
-            logging.info(f"Exception occurred while fetching ticket message: {e}")
-            return []
+        messages_data = await self.paginate(
+            session,
+            endpoint=f"{self.endpoint}/{ticket_id}/messages",
+            payload=message_payload,
+            max_pages=max_page
+        )
+        return messages_data
