@@ -26,11 +26,10 @@ async def process_tickets(
     request: Request,
     table_name: str,
     is_initial: bool = Query(False),
-    date: Optional[str] = Query("2025-01-01", description="Start-of-month date (YYYY-MM-DD)")
+    date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
 ):
     session = get_aiohttp_session(request)
     date, filter_field = resolve_extraction_date(is_initial, date)
-    print(f"date: {date}, filter_field: {filter_field}")
     extractor = create_extractor(
         max_page=TEST_MAX_PAGE,
         per_page=TEST_PER_PAGE,
@@ -38,6 +37,17 @@ async def process_tickets(
         session=session
     )
     return await extractor.extract_tickets(date, filter_field)
+
+@router.post("/process-ticket-messages/{table_name}")
+async def process_ticket_messages(
+    request: Request,
+    table_name: str,
+    is_initial: bool = Query(False),
+    date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
+):
+    session = get_aiohttp_session(request)
+    date, filter_field = resolve_extraction_date(is_initial, date)
+    print(f"date: {date}, filter_field: {filter_field}")
 
 @router.get("/tickets/{table_name}")
 async def get_tickets(request: Request, table_name: str):

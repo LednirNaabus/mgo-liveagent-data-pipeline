@@ -91,6 +91,12 @@ class Extractor:
                 status=ResponseStatus.ERROR
             )
 
+    # fetch ticket messages
+    async def extract_ticket_messages(
+        self
+    ) -> TicketAPIResponse:
+        pass
+
     async def fetch_bq_tickets(self) -> TicketAPIResponse:
         # To do: make the table name static (i.e., whatever the table name is in BigQuery)
         try:
