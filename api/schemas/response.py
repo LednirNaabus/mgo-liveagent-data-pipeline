@@ -8,7 +8,7 @@ class ResponseStatus(Enum):
     TIMEOUT = "timeout"
 
 @dataclass
-class APIResponse:
+class LiveAgentAPIResponse:
     success: bool
     status: ResponseStatus = ResponseStatus.SUCCESS
     data: Optional[Dict[str, Any]] = None
@@ -16,7 +16,7 @@ class APIResponse:
     status_code: Optional[int] = None
 
 @dataclass
-class TicketAPIResponse:
+class ExtractionResponse:
     status: ResponseStatus = None
     count: str = None
     data: List[Dict[str, Any]] = None
