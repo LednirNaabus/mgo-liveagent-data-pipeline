@@ -1,5 +1,5 @@
 from config.constants import LIVEAGENT_MGO_SYSTEM_USER_ID
-from api.schemas.response import TicketAPIResponse
+from api.schemas.response import ExtractionResponse
 from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any
 import pandas as pd
@@ -25,58 +25,17 @@ class Ticket:
             "_sortDir": "ASC"
         }
 
-    async def paginate(
-        self,
-        session: aiohttp.ClientSession,
-        endpoint: str = None,
-        payload: Dict[str, Any] = None,
-        max_pages: int = 5
-    ) -> TicketAPIResponse:
-        """Generic pagination logic for `/tickets`."""
-        all_data = []
-        page = 1
-        while page <= max_pages:
-            payload["_page"] = page
-            print(f"Fetching page {page} from {endpoint}")
-            try:
-                data = await self.client.make_request(
-                    session,
-                    endpoint,
-                    params=payload
-                )
-
-                if not data:
-                    print(f"No data returned for page {page}, stopping pagination.")
-                    break
-
-                if hasattr(data, "data"):
-                    items = data.data if isinstance(data.data, list) else []
-                else:
-                    items = []
-
-                if not items:
-                    print(f"No items in page {page}, stopping pagination.")
-                    break
-
-                all_data.extend(items)
-                page += 1
-            except Exception as e:
-                print(f"Error fetching page {page}: {e}")
-                break
-
-        return all_data
-
     async def fetch_tickets(
         self,
         session: aiohttp.ClientSession,
         payload: Dict[str, Any] = None,
         max_pages: int = 5,
         per_page: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> ExtractionResponse:
         if payload is None:
             payload = self._default_payload()
         payload["_perPage"] = per_page
-        data = await self.paginate(
+        data = await self.client.paginate(
             session,
             self.endpoint,
             payload,
@@ -97,13 +56,13 @@ class Ticket:
         max_page: int,
         per_page: int,
         session: aiohttp.ClientSession
-    ) -> TicketAPIResponse:
+    ) -> ExtractionResponse:
         message_payload = {
             "_page": 1,
             "_perPage": per_page
         }
 
-        messages_data = await self.paginate(
+        messages_data = await self.client.paginate(
             session,
             endpoint=f"{self.endpoint}/{ticket_id}/messages",
             payload=message_payload,

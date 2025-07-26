@@ -1,6 +1,6 @@
-from api.schemas.response import APIResponse, ResponseStatus
+from api.schemas.response import LiveAgentAPIResponse, ResponseStatus
 from config.constants import BASE_URL, THROTTLE_DELAY
-from typing import Dict, Optional, Any
+from typing import Dict, List, Optional, Any
 import asyncio
 import aiohttp
 import logging
@@ -51,7 +51,7 @@ class LiveAgentClient:
         self,
         response: aiohttp.ClientResponse,
         endpoint: str
-    ) -> APIResponse:
+    ) -> LiveAgentAPIResponse:
         """API response parser and handler."""
         try:
             if response.content_type == "application/json":
@@ -61,7 +61,7 @@ class LiveAgentClient:
                 data = {"message": text} if text else {"message": "Empty response"}
 
             if 200 <= response.status < 300:
-                return APIResponse(
+                return LiveAgentAPIResponse(
                     success=True,
                     data=data,
                     status_code=response.status,
@@ -70,7 +70,7 @@ class LiveAgentClient:
             else:
                 error_msg = data.get("message", f"HTTP {response.status}") if isinstance(data, dict) else str(data)
                 self.logger.warning(f"API error for {endpoint}: {response.status} - {error_msg}")
-                return APIResponse(
+                return LiveAgentAPIResponse(
                     success=False,
                     data=error_msg,
                     status_code=response.status,
@@ -79,7 +79,7 @@ class LiveAgentClient:
         except aiohttp.ContentTypeError as e:
             error_msg = f"Invalid response from {endpoint}"
             self.logger.error(error_msg)
-            return APIResponse(
+            return LiveAgentAPIResponse(
                 success=False,
                 data=error_msg,
                 status_code=response.status,
@@ -94,7 +94,7 @@ class LiveAgentClient:
         endpoint: str,
         method: str = "GET",
         params: Optional[Dict[str, Any]] = None,
-    ) -> APIResponse:
+    ) -> LiveAgentAPIResponse:
         endpoint = endpoint.lstrip("/")
         url = f"{self.base_url}/{endpoint}"
 
@@ -113,7 +113,7 @@ class LiveAgentClient:
         except aiohttp.ClientError as e:
             error_msg = f"Client error for {endpoint}: {str(e)}"
             self.logger.error(error_msg)
-            return APIResponse(
+            return LiveAgentAPIResponse(
                 success=False,
                 error=error_msg,
                 status=ResponseStatus.ERROR
@@ -121,7 +121,7 @@ class LiveAgentClient:
         except asyncio.TimeoutError:
             error_msg = f"Request to {endpoint} timed out"
             self.logger.error(error_msg)
-            return APIResponse(
+            return LiveAgentAPIResponse(
                 success=True,
                 error=error_msg,
                 status=ResponseStatus.TIMEOUT
@@ -129,8 +129,57 @@ class LiveAgentClient:
         except Exception as e:
             error_msg = f"Exception occurred for {endpoint}: {str(e)}"
             self.logger.error(error_msg)
-            return APIResponse(
+            return LiveAgentAPIResponse(
                 success=False,
                 error=error_msg,
                 status=ResponseStatus.ERROR
             )
+
+    async def paginate(
+        self,
+        session: aiohttp.ClientSession,
+        endpoint: str,
+        payload: Optional[Dict[str, Any]] = None,
+        max_pages: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Generic pagination utility for any LiveAgent endpoint."""
+        all_data = []
+        page = 1
+
+        if payload is None:
+            payload = {}
+
+        while page <= max_pages:
+            payload["_page"] = page
+            self.logger.info(f"Fetching page {page} from {endpoint}")
+            try:
+                response = await self.make_request(
+                    session=session,
+                    endpoint=endpoint,
+                    params=payload
+                )
+
+                if not response.success or not response.data:
+                    self.logger.warning(f"No data returned or request failed at page {page}.")
+                    break
+
+                if isinstance(response.data, list):
+                    items = response.data
+                elif isinstance(response.data, dict) and "data" in response.data:
+                    items = response.data["data"]
+                else:
+                    self.logger.warning(f"Unexpected data structure at page {page}.")
+                    break
+
+                if not items:
+                    self.logger.info(f"No items on page {page}, stopping pagination.")
+                    break
+
+                all_data.extend(items)
+                page += 1
+
+            except Exception as e:
+                self.logger.info(f"Error during pagination at page {page}: {e}")
+                break
+
+        return all_data
