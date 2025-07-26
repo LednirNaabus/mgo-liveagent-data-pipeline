@@ -14,7 +14,8 @@ def prepare_and_load_to_bq(
     bq: BigQuery,
     df: pd.DataFrame,
     table_name: str,
-    flag: bool = True
+    flag: bool = True,
+    write_mode: str = None
 ) -> List[SchemaField]:
     """
     Helper function for `Extractor` class that loads a DataFrame to BigQuery.
@@ -33,7 +34,7 @@ def prepare_and_load_to_bq(
     schema = bq.generate_schema(df)
     bq.ensure_table(table_name, schema)
     if flag:
-        bq.load_dataframe(df, table_name)
+        bq.load_dataframe(df, table_name, write_disposition=write_mode)
     return schema
 
 def upsert_to_bq_with_staging(
