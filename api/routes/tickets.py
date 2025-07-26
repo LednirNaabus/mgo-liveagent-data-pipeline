@@ -35,7 +35,7 @@ async def process_tickets(
         table_name=table_name,
         session=session
     )
-    # return await extractor.extract_tickets()
+    return await extractor.extract_tickets()
 
 @router.get("/tickets/{table_name}")
 async def get_tickets(request: Request, table_name: str):
