@@ -43,6 +43,14 @@ class Extractor:
         self.bigquery = BigQuery()
         self.session = session 
 
+    async def _load_to_bq(self, df: pd.DataFrame) -> None:
+        """Helper function for `Extractor` class that loads a DataFrame to BigQuery."""
+        logging.info("Generating schema and loading data to BigQuery...")
+        self.bigquery.ensure_dataset()
+        schema = self.bigquery.generate_schema(df)
+        self.bigquery.ensure_table(self.table_name, schema)
+        self.bigquery.load_dataframe(df, self.table_name)
+
     async def extract_tickets(self) -> TicketAPIResponse:
         try:
             tickets_raw = await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
@@ -54,13 +62,7 @@ class Extractor:
                     data=[],
                     message="No tickets fetched!"
                 )
-
-            # Load to BigQuery
-            logging.info("Generating schema and loading data to BigQuery...")
-            self.bigquery.ensure_dataset()
-            schema = self.bigquery.generate_schema(tickets_processed)
-            self.bigquery.ensure_table(self.table_name, schema)
-            self.bigquery.load_dataframe(tickets_processed, self.table_name)
+            self._load_to_bq(tickets_processed)
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
