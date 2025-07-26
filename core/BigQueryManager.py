@@ -1,4 +1,4 @@
-from config.bq_config import BQ_CLIENT, BQ_DATASET_NAME, CREDS_FILE, GCLOUD_PROJECT_ID
+from config.bq_config import BQ_CLIENT, BQ_DATASET_NAME
 from google.cloud.bigquery import SchemaField
 from google.cloud.exceptions import NotFound
 from google.cloud import bigquery
@@ -46,7 +46,8 @@ class BigQuery:
         self,
         df: pd.DataFrame,
         table_name: str,
-        write_disposition: str = "WRITE_APPEND"
+        write_disposition: str = "WRITE_APPEND",
+        schema: SchemaField = None
     ):
         table_id = f"{self.client.project}.{self.dataset_id}.{table_name}"
 
@@ -55,7 +56,9 @@ class BigQuery:
                 df,
                 table_id,
                 job_config=bigquery.LoadJobConfig(
-                    write_disposition=write_disposition
+                    schema=schema,
+                    write_disposition=write_disposition,
+                    autodetect=schema is None
                 )
             )
             job.result()
