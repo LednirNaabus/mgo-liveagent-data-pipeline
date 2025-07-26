@@ -2,31 +2,29 @@
 
 ---
 
-## To Do:
-
-- [ ] Create Logging
-
-- [x] Create Data Extractor class
-
-- [ ] Add `settings.py` in `config/` directory
-
-    - [ ] Add `Dev`, `Local`, and `Prod`
-
----
-
-## To Do (As of 7/25/2025):
-
-- [ ] Fix ticket messages extraction
-
-- [ ] Agents extraction
-
-- [ ] Users extraction
-
-- [ ] BigQuery integration
+## To Do (As of 7/26/2025):
 
 - [ ] Refactor again
 
-    - [ ] Do something about parsing the tickets (`TicketAPIResponse`)
+    - [x] Create Data Extractor class
+
+    - [ ] Add `settings.py` in `config/` directory
+
+        - [ ] Add `Dev`, `Local`, and `Prod`
+
+    - [ ] Create Logging
+
+    - [x] Do something about parsing the tickets (`TicketAPIResponse`)
+
+    - [ ] Fix ticket messages extraction
+
+    - [x] Agents extraction
+
+    - [ ] Users extraction
+
+    - [x] BigQuery integration
+
+- [ ] Use `pydantic` instead of `dataclasses` in `api/schemas/`
 
 ---
 

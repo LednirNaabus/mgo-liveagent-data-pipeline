@@ -1,4 +1,3 @@
-from config.constants import LIVEAGENT_MGO_SYSTEM_USER_ID
 from api.schemas.response import ExtractionResponse
 from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any

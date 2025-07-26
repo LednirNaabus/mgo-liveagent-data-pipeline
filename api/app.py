@@ -1,5 +1,6 @@
 from api import (
-    ticket_router
+    ticket_router,
+    agent_router
 )
 from contextlib import asynccontextmanager
 from config.constants import APP_VERSION
@@ -29,6 +30,7 @@ app = FastAPI(
     version=APP_VERSION
 )
 app.include_router(ticket_router, prefix="/extract", tags=["ticket"])
+app.include_router(agent_router, prefix="/extract", tags=["agents"])
 
 
 @app.get("/")

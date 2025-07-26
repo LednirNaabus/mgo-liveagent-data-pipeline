@@ -10,10 +10,6 @@ from api.common import (
 
 router = APIRouter()
 
-# For testing purposes only (Will delete later)
-TEST_MAX_PAGE = 1
-TEST_PER_PAGE = 5
-
 # 1. Extract data from LiveAgent API
 # 2. Parse according to requirements
 # 3. Load data to BigQuery
@@ -28,6 +24,11 @@ async def process_tickets(
     is_initial: bool = Query(False),
     date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
 ):
+    # For testing purposes (delete later)
+    try:
+        from config.constants import TEST_MAX_PAGE, TEST_PER_PAGE
+    except Exception as e:
+        return f"Exception occurred: {e}"
     session = get_aiohttp_session(request)
     date, filter_field = resolve_extraction_date(is_initial, date)
     extractor = create_extractor(

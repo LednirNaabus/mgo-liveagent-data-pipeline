@@ -1,8 +1,9 @@
+from api.schemas.response import ExtractionResponse
 from utils.date_utils import set_timezone
 from config.config import MNL_TZ
 import pandas as pd
 
-def process_tickets(tickets: pd.DataFrame) -> pd.DataFrame:
+def process_tickets(tickets: ExtractionResponse) -> pd.DataFrame:
     tickets["datetime_extracted"] = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
     tickets["datetime_extracted"] = pd.to_datetime(tickets["datetime_extracted"], errors="coerce")
 
@@ -26,5 +27,11 @@ def process_tickets(tickets: pd.DataFrame) -> pd.DataFrame:
     )
     return tickets
 
-def process_agents(agents: pd.DataFrame):
-    pass
+def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
+    agents_df = pd.DataFrame(agents)
+    agents_df = set_timezone(
+        agents_df,
+        "last_pswd_change",
+        target_tz=MNL_TZ
+    )
+    return agents_df
