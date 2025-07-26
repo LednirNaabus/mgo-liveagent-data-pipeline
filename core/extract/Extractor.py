@@ -1,8 +1,10 @@
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import TicketAPIResponse, ResponseStatus
-from core.extract.ticket_processor import process_tickets
+from core.extract.helpers.ticket_processing import process_tickets
+from core.schemas.TicketFilter import FilterField
 from core.LiveAgentClient import LiveAgentClient
 from core.BigQueryManager import BigQuery
+from utils.tickets_util import set_filter
 from core.Ticket import Ticket
 import pandas as pd
 import aiohttp
@@ -44,9 +46,22 @@ class Extractor:
         self.bigquery = BigQuery()
         self.session = session 
 
-    async def extract_tickets(self) -> TicketAPIResponse:
+    async def extract_tickets(
+        self,
+        date: pd.Timestamp,
+        filter_field: FilterField = FilterField.DATE_CHANGED
+    ) -> TicketAPIResponse:
+        filters = set_filter(date, filter_field)
+        ticket_payload = {
+            "_perPage": self.per_page,
+            "_filters": filters
+        }
+
+        if filter_field == FilterField.DATE_CREATED:
+            ticket_payload["_sortDir"] = "ASC"
         try:
-            tickets_raw = await self.ticket.fetch_tickets(self.session, self.max_page, self.per_page)
+            logging.info(f"Extracting using the filer: {ticket_payload["_filters"]}")
+            tickets_raw = await self.ticket.fetch_tickets(self.session, ticket_payload, self.max_page, self.per_page)
             tickets_processed = process_tickets(tickets_raw)
             if tickets_processed.empty:
                 return TicketAPIResponse(

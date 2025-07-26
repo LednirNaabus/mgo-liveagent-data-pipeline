@@ -69,10 +69,12 @@ class Ticket:
     async def fetch_tickets(
         self,
         session: aiohttp.ClientSession,
+        payload: Dict[str, Any] = None,
         max_pages: int = 5,
         per_page: int = 10
     ) -> List[Dict[str, Any]]:
-        payload = self._default_payload()
+        if payload is None:
+            payload = self._default_payload()
         payload["_perPage"] = per_page
         data = await self.paginate(
             session,

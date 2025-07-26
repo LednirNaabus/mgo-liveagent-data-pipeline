@@ -9,6 +9,8 @@ from api.common import (
 )
 
 router = APIRouter()
+
+# For testing purposes only (Will delete later)
 TEST_MAX_PAGE = 1
 TEST_PER_PAGE = 5
 
@@ -35,7 +37,7 @@ async def process_tickets(
         table_name=table_name,
         session=session
     )
-    return await extractor.extract_tickets()
+    return await extractor.extract_tickets(date, filter_field)
 
 @router.get("/tickets/{table_name}")
 async def get_tickets(request: Request, table_name: str):
