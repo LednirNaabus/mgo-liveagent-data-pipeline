@@ -26,6 +26,14 @@
 
 - [ ] Use `pydantic` instead of `dataclasses` in `api/schemas/`
 
+### **branch: `refactor-v1-ticket-messages-parsing`**
+
+- [ ] Parse ticket messages
+
+    - Collect `userids`, then use that to check in `/agents` and `/users/{userID}` endpoint to determine who the sender and receiver of the message is
+
+- [ ] Work on `core/Users.py`
+
 ---
 
 # Notes
