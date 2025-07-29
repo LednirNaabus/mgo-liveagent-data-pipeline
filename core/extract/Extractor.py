@@ -75,9 +75,9 @@ class Extractor:
                     data=[],
                     message="No tickets fetched!"
                 )
-            logging.info("Generating schema and loading data to BigQuery...")
-            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
-            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
+            # logging.info("Generating schema and loading data to BigQuery...")
+            # schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
+            # upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -98,9 +98,16 @@ class Extractor:
 
     # fetch ticket messages
     async def extract_ticket_messages(
-        self
+        self,
+        ticket_ids,
+        session: aiohttp.ClientSession
     ) -> ExtractionResponse:
-        pass
+        return await self.ticket.fetch_ticket_message(
+            ticket_id=ticket_ids,
+            max_page=self.max_page,
+            per_page=self.per_page,
+            session=session
+        )
 
     async def fetch_bq_tickets(self) -> ExtractionResponse:
         # To do: make the table name static (i.e., whatever the table name is in BigQuery)
