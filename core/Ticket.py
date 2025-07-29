@@ -1,6 +1,7 @@
 from api.schemas.response import ExtractionResponse
 from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any
+from core.User import User
 import pandas as pd
 import aiohttp
 import asyncio
@@ -15,7 +16,11 @@ class Ticket:
     """Class for `/tickets` LiveAgent API endpoint."""
     def __init__(self, client: LiveAgentClient):
         self.client = client
+        self.user = User(self.client)
         self.endpoint = "tickets"
+
+        self.agents_cache = {}
+        self.unique_userids = set()
 
     def _default_payload(self) -> Dict[str, Any]:
         return {
@@ -99,90 +104,48 @@ class Ticket:
 
         tasks = [fetch_single_ticket_messages(ticket_id) for ticket_id in ticket_ids]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        all_messages = []
+
+        # get ticket ids
+        # ticket owner name
+        # ticket agent name
+
+        flattened_messages = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logging.error(f"Failed to fetch messages for ticket {ticket_ids[i]}: {result}")
-            else:
-                all_messages.extend(result)
-        logging.info(f"Successfully fetched messages for {len([r for r in results if not isinstance(r, Exception)])} out of {len(ticket_ids)} tickets.")
-        return all_messages
 
-    async def fetch_ticket_messages_df(
-        self,
-        ticket_ids: List[str],
-        max_page: int,
-        per_page: int,
-        session: aiohttp.ClientSession,
-        concurrent_limit: int = 10
-    ) -> pd.DataFrame:
-        """
-        Flattens nested message structure of tickets for analysis.
-        """
-        messages_data = await self.fetch_ticket_messages_batch(
-            ticket_ids, max_page, per_page, session, concurrent_limit
-        )
-        flattened_messages = []
-        for message_grp in messages_data:
-            ticket_id = message_grp.get("ticket_id")
-            base_info = {
-                "ticket_id": ticket_id,
-                "message_group_id": message_grp.get("id"),
-                "parent_id": message_grp.get("parent_id"),
-                "userid": message_grp.get("userid"),
-                "user_full_name": message_grp.get("user_full_name"),
-                "type": message_grp.get("type"),
-                "status": message_grp.get("status"),
-                "datecreated": message_grp.get("datecreated"),
-                "datefinished": message_grp.get("datefinished"),
-                "sort_order": message_grp.get("sort_order"),
-                "mail_msg_id": message_grp.get("mail_msg_id"),
-                "pop3_msg_id": message_grp.get("pop3_msg_id")
-            }
+            logging.info(f"Successfully fetched messages for {len([r for r in results if not isinstance(r, Exception)])} out of {len(ticket_ids)} tickets.")
+            for message in result:
+                base_info = {
+                    "ticket_id": ticket_ids[i],
+                    "message_group_id": message.get("id"),
+                    "parent_id": message.get("parent_id"),
+                    "userid": message.get("userid"),
+                    "user_full_name": message.get("user_full_name"),
+                    "type": message.get("type"),
+                    "status": message.get("status"),
+                    "datecreated": message.get("datecreated"),
+                    "datefinished": message.get("datefinished"),
+                    "sort_order": message.get("sort_order"),
+                    "mail_msg_id": message.get("mail_msg_id"),
+                    "pop3_msg_id": message.get("pop3_msg_id"),
+                }
 
-            messages = message_grp.get("messages", [])
-            if messages:
-                for msg in messages:
-                    flattened_message = {
-                        **base_info,
-                        "message_id": msg.get("id"),
-                        "message_userid": msg.get("userid"),
-                        "message_type": msg.get("type"),
-                        "message_datecreated": msg.get("datecreated"),
-                        "message_format": msg.get("format"),
-                        "message_content": msg.get("message"),
-                        "message_visibility": msg.get("visibility")
-                    }
-                    flattened_messages.append(flattened_message)
-            else:
-                flattened_messages.append(base_info)
-
-        return pd.DataFrame(flattened_messages)
-
-    async def fetch_ticket_messages_simple(
-        self,
-        ticket_ids: List[str],
-        max_page: int,
-        per_page: int,
-        session: aiohttp.ClientSession,
-        concurrent_limit: int = 10
-    ) -> List[Dict]:
-        import json
-        raw_msgs = await self.fetch_ticket_messages_batch(
-            ticket_ids=ticket_ids,
-            max_page=max_page,
-            per_page=per_page,
-            session=session,
-            concurrent_limit=concurrent_limit
-        )
-
-        cleaned_msgs = []
-        for msg in raw_msgs:
-            try:
-                cleaned_msg = json.loads(json.dumps(msg, default=str))
-                cleaned_msgs.append(cleaned_msg)
-            except Exception as e:
-                logging.warning(f"Could not clean message: {e}")
-                raise
-
-        return cleaned_msgs
+                messages = message.get("messages", [])
+                if messages:
+                    for msg in messages:
+                        flattened_message = {
+                            **base_info,
+                            "message_id": msg.get("id"),
+                            "message_userid": msg.get("userid"),
+                            "message_type": msg.get("type"),
+                            "message_datecreated": msg.get("datecreated"),
+                            "message_format": msg.get("format"),
+                            "message_content": msg.get("message"),
+                            "message_visibility": msg.get("visibility")
+                        }
+                        flattened_messages.append(flattened_message)
+                else:
+                    flattened_messages.append(base_info)
+        
+        return flattened_messages

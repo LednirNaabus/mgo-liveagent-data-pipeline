@@ -1,5 +1,5 @@
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
-from core.extract.helpers.extraction_helpers import process_tickets, process_agents
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from config.constants import PROJECT_ID, DATASET_NAME
 from core.schemas.TicketFilter import FilterField
@@ -77,8 +77,8 @@ class Extractor:
                     message="No tickets fetched!"
                 )
             logging.info("Generating schema and loading data to BigQuery...")
-            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
-            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
+            # schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
+            # upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -98,20 +98,41 @@ class Extractor:
             )
 
     # fetch ticket messages
+    # prepare to load to BQ
     async def extract_ticket_messages(
         self,
         ticket_ids,
         session: aiohttp.ClientSession
     ) -> ExtractionResponse:
         try:
-            return await self.ticket.fetch_ticket_messages_simple(
+            messages_raw = await self.ticket.fetch_ticket_messages_batch(
                 ticket_ids=ticket_ids,
                 max_page=self.max_page,
                 per_page=self.per_page,
                 session=session,
                 concurrent_limit=10
             )
+            messages_processed = process_ticket_messages(messages_raw)
+            if messages_processed.empty:
+                return ExtractionResponse(
+                    status=ResponseStatus.ERROR,
+                    count="0",
+                    data=[],
+                    message="No messages fetched!"
+                )
+            messages = (
+                messages_processed
+                .where(pd.notnull(messages_processed), None)
+                .to_dict(orient="records")
+            )
+            return ExtractionResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(messages)),
+                data=messages
+            )
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             logging.error(f"Exception occurred while extracting ticket messages: {e}")
             return ExtractionResponse(
                 count="0",

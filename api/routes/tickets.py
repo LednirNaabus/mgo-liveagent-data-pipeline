@@ -66,6 +66,9 @@ async def process_single_ticket_messages(
 
 ########## FOR CLOUD SCHEDULER ##########
 @router.post("/process-tickets-and-messages/{table_name}")
+# Change:
+# - Remove 'table_name' -> not needed
+# - Hard code table creation for both tickets and ticket messages
 async def process_ticket_and_messages(
     request: Request,
     table_name: str,
@@ -75,8 +78,8 @@ async def process_ticket_and_messages(
     session = get_aiohttp_session(request)
     date, filter_field = resolve_extraction_date(is_initial, date)
     extractor = create_extractor(
-        max_page=TEST_MAX_PAGE,
-        per_page=TEST_PER_PAGE,
+        max_page=1,
+        per_page=1,
         table_name=table_name,
         session=session
     )
@@ -98,8 +101,7 @@ async def process_ticket_and_messages(
     )
 
     result.update({
-        "message_count": len(messages),
-        "messages": messages
+        "message_count": messages.count
     })
 
     return result
