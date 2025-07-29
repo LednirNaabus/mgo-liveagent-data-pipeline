@@ -50,13 +50,12 @@ async def process_ticket_messages(
     date, filter_field = resolve_extraction_date(is_initial, date)
     print(f"date: {date}, filter_field: {filter_field}")
 
-@router.get("/tickets/{table_name}")
-async def get_tickets(request: Request, table_name: str):
+@router.get("/tickets")
+async def get_tickets(request: Request):
     # To Do here:
     # 1. Submit query (ex: "SELECT * FROM `tickets`")
     session = get_aiohttp_session(request)
     extractor = create_extractor(
-        table_name=table_name,
         session=session
     )
     return await extractor.fetch_bq_tickets()

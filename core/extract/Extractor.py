@@ -107,8 +107,8 @@ class Extractor:
         try:
             from config.constants import PROJECT_ID, DATASET_NAME
             query = """
-            SELECT * FROM `{}.{}.{}`
-            """.format(PROJECT_ID, DATASET_NAME, self.table_name)
+            SELECT * FROM `{}.{}.tickets` LIMIT 10
+            """.format(PROJECT_ID, DATASET_NAME)
             df = self.bigquery.sql_query_bq(query)
             df = df.to_dict(orient="records")
             return ExtractionResponse(
