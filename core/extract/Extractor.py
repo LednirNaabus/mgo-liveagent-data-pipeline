@@ -1,6 +1,7 @@
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from core.extract.helpers.extraction_helpers import process_tickets, process_agents
 from api.schemas.response import ExtractionResponse, ResponseStatus
+from config.constants import PROJECT_ID, DATASET_NAME
 from core.schemas.TicketFilter import FilterField
 from core.LiveAgentClient import LiveAgentClient
 from core.BigQueryManager import BigQuery
@@ -75,9 +76,9 @@ class Extractor:
                     data=[],
                     message="No tickets fetched!"
                 )
-            # logging.info("Generating schema and loading data to BigQuery...")
-            # schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
-            # upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
+            logging.info("Generating schema and loading data to BigQuery...")
+            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
+            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -89,7 +90,7 @@ class Extractor:
                 data=tickets
             )
         except Exception as e:
-            logging.info(f"Exception occurred while extracting tickets: {e}")
+            logging.error(f"Exception occurred while extracting tickets: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],
@@ -102,17 +103,50 @@ class Extractor:
         ticket_ids,
         session: aiohttp.ClientSession
     ) -> ExtractionResponse:
-        return await self.ticket.fetch_ticket_message(
-            ticket_id=ticket_ids,
-            max_page=self.max_page,
-            per_page=self.per_page,
-            session=session
-        )
+        try:
+            return await self.ticket.fetch_ticket_messages_simple(
+                ticket_ids=ticket_ids,
+                max_page=self.max_page,
+                per_page=self.per_page,
+                session=session,
+                concurrent_limit=10
+            )
+        except Exception as e:
+            logging.error(f"Exception occurred while extracting ticket messages: {e}")
+            return ExtractionResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR
+            )
+
+    async def extract_single_ticket_message(
+        self,
+        ticket_id: str,
+        session: aiohttp.ClientSession
+    ) -> ExtractionResponse:
+        try:
+            message = await self.ticket.fetch_ticket_message(
+                ticket_id=ticket_id,
+                max_page=self.max_page,
+                per_page=self.per_page,
+                session=session
+            )
+            return ExtractionResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(message)),
+                data=message
+            )
+        except Exception as e:
+            logging.error(f"Exception occurred while extracting ticket message: {e}")
+            return ExtractionResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR
+            )
 
     async def fetch_bq_tickets(self) -> ExtractionResponse:
-        # To do: make the table name static (i.e., whatever the table name is in BigQuery)
         try:
-            from config.constants import PROJECT_ID, DATASET_NAME
+            # Temporary: Limit 10 tickets for now
             query = """
             SELECT * FROM `{}.{}.tickets` LIMIT 10
             """.format(PROJECT_ID, DATASET_NAME)
@@ -124,7 +158,7 @@ class Extractor:
                 data=df
             )
         except Exception as e:
-            logging.info(f"Exception occurred while querying tickets from BigQuery: {e}")
+            logging.error(f"Exception occurred while querying tickets from BigQuery: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],
@@ -136,10 +170,8 @@ class Extractor:
         self
     ) -> ExtractionResponse:
         try:
-            import traceback
             agents_raw = await self.agent.get_agents(self.session, self.max_page, self.per_page)
             agents_processed = process_agents(agents_raw)
-            logging.info(f"agents_processed: {agents_processed}")
             if agents_processed.empty:
                 return ExtractionResponse(
                     status=ResponseStatus.ERROR,
@@ -155,8 +187,7 @@ class Extractor:
                 data=agents_raw
             )
         except Exception as e:
-            traceback.print_exc()
-            logging.info(f"Exception occurred while extracting agents: {e}")
+            logging.error(f"Exception occurred while extracting agents: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],

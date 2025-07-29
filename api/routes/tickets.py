@@ -1,8 +1,8 @@
 from api.routes.helpers.tickets_route_helpers import resolve_extraction_date
-from api.routes.helpers.file_handlers import write_to_file, read_from_file
 from utils.session_utils import get_aiohttp_session
 from core.factory import create_extractor
 from typing import Optional
+import traceback
 from api.common import (
     APIRouter,
     Request,
@@ -37,21 +37,18 @@ async def process_tickets(
         session=session
     )
     response = await extractor.extract_tickets(date, filter_field)
-    ticket_ids = [ticket["id"] for ticket in response.data]
-    write_to_file(table_name, ticket_ids)
     return {
         "status": response.status,
         "count": response.count,
-        "ticket_ids": ticket_ids,
+        "data": response.data,
         "message": response.message if hasattr(response, "message") else None
     }
 
-@router.post("/process-ticket-messages/{table_name}")
-async def process_ticket_messages(
+@router.post("/process-single-ticket-messages/{table_name}")
+async def process_single_ticket_messages(
     request: Request,
     table_name: str,
-    is_initial: bool = Query(False),
-    date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
+    ticket_id: str
 ):
     session = get_aiohttp_session(request)
     extractor = create_extractor(
@@ -60,16 +57,52 @@ async def process_ticket_messages(
         table_name=table_name,
         session=session
     )
-    ticket_ids = read_from_file(table_name)
-    all_messages = []
-    for ticket_id in ticket_ids:
-        messages = await extractor.extract_ticket_messages(ticket_id, session)
-        all_messages.extend(messages)
+    message = await extractor.extract_single_ticket_message(ticket_id, session)
     return {
-        "status": "SUCCESS",
-        "count": len(all_messages),
-        "data": all_messages
+        "status": message.status,
+        "count": message.count,
+        "data": message.data
     }
+
+########## FOR CLOUD SCHEDULER ##########
+@router.post("/process-tickets-and-messages/{table_name}")
+async def process_ticket_and_messages(
+    request: Request,
+    table_name: str,
+    is_initial: bool = Query(False),
+    date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
+):
+    session = get_aiohttp_session(request)
+    date, filter_field = resolve_extraction_date(is_initial, date)
+    extractor = create_extractor(
+        max_page=TEST_MAX_PAGE,
+        per_page=TEST_PER_PAGE,
+        table_name=table_name,
+        session=session
+    )
+
+    # TODO: add BigQuery save here
+    tickets_res = await extractor.extract_tickets(date, filter_field)
+    ticket_ids = [ticket["id"] for ticket in tickets_res.data]
+    
+    result = {
+        "status": tickets_res.status,
+        "ticket_count": tickets_res.count,
+        "ticket_ids": ticket_ids,
+        "ticket_message": tickets_res.message if hasattr(tickets_res, "message") else None
+    }
+
+    messages = await extractor.extract_ticket_messages(
+        ticket_ids=ticket_ids,
+        session=session
+    )
+
+    result.update({
+        "message_count": len(messages),
+        "messages": messages
+    })
+
+    return result
 
 @router.get("/tickets")
 async def get_tickets(request: Request):

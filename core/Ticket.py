@@ -3,6 +3,7 @@ from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any
 import pandas as pd
 import aiohttp
+import asyncio
 import logging
 
 logging.basicConfig(
@@ -67,4 +68,121 @@ class Ticket:
             payload=message_payload,
             max_pages=max_page
         )
+
+        for message in messages_data:
+            message['ticket_id'] = ticket_id
+
         return messages_data
+
+    async def fetch_ticket_messages_batch(
+        self,
+        ticket_ids: List[str],
+        max_page: int,
+        per_page: int,
+        session: aiohttp.ClientSession,
+        concurrent_limit: int = 10
+    ):
+        """
+        For fetching multiple tickets concurrently.
+        """
+        semaphore = asyncio.Semaphore(concurrent_limit)
+        async def fetch_single_ticket_messages(ticket_id: str):
+            async with semaphore:
+                try:
+                    logging.info(f"Fetching messages for ticket {ticket_id}")
+                    return await self.fetch_ticket_message(
+                        ticket_id, max_page, per_page, session
+                    )
+                except Exception as e:
+                    logging.error(f"Error fetching messages for ticket {ticket_id}: {e}")
+                    return []
+
+        tasks = [fetch_single_ticket_messages(ticket_id) for ticket_id in ticket_ids]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        all_messages = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logging.error(f"Failed to fetch messages for ticket {ticket_ids[i]}: {result}")
+            else:
+                all_messages.extend(result)
+        logging.info(f"Successfully fetched messages for {len([r for r in results if not isinstance(r, Exception)])} out of {len(ticket_ids)} tickets.")
+        return all_messages
+
+    async def fetch_ticket_messages_df(
+        self,
+        ticket_ids: List[str],
+        max_page: int,
+        per_page: int,
+        session: aiohttp.ClientSession,
+        concurrent_limit: int = 10
+    ) -> pd.DataFrame:
+        """
+        Flattens nested message structure of tickets for analysis.
+        """
+        messages_data = await self.fetch_ticket_messages_batch(
+            ticket_ids, max_page, per_page, session, concurrent_limit
+        )
+        flattened_messages = []
+        for message_grp in messages_data:
+            ticket_id = message_grp.get("ticket_id")
+            base_info = {
+                "ticket_id": ticket_id,
+                "message_group_id": message_grp.get("id"),
+                "parent_id": message_grp.get("parent_id"),
+                "userid": message_grp.get("userid"),
+                "user_full_name": message_grp.get("user_full_name"),
+                "type": message_grp.get("type"),
+                "status": message_grp.get("status"),
+                "datecreated": message_grp.get("datecreated"),
+                "datefinished": message_grp.get("datefinished"),
+                "sort_order": message_grp.get("sort_order"),
+                "mail_msg_id": message_grp.get("mail_msg_id"),
+                "pop3_msg_id": message_grp.get("pop3_msg_id")
+            }
+
+            messages = message_grp.get("messages", [])
+            if messages:
+                for msg in messages:
+                    flattened_message = {
+                        **base_info,
+                        "message_id": msg.get("id"),
+                        "message_userid": msg.get("userid"),
+                        "message_type": msg.get("type"),
+                        "message_datecreated": msg.get("datecreated"),
+                        "message_format": msg.get("format"),
+                        "message_content": msg.get("message"),
+                        "message_visibility": msg.get("visibility")
+                    }
+                    flattened_messages.append(flattened_message)
+            else:
+                flattened_messages.append(base_info)
+
+        return pd.DataFrame(flattened_messages)
+
+    async def fetch_ticket_messages_simple(
+        self,
+        ticket_ids: List[str],
+        max_page: int,
+        per_page: int,
+        session: aiohttp.ClientSession,
+        concurrent_limit: int = 10
+    ) -> List[Dict]:
+        import json
+        raw_msgs = await self.fetch_ticket_messages_batch(
+            ticket_ids=ticket_ids,
+            max_page=max_page,
+            per_page=per_page,
+            session=session,
+            concurrent_limit=concurrent_limit
+        )
+
+        cleaned_msgs = []
+        for msg in raw_msgs:
+            try:
+                cleaned_msg = json.loads(json.dumps(msg, default=str))
+                cleaned_msgs.append(cleaned_msg)
+            except Exception as e:
+                logging.warning(f"Could not clean message: {e}")
+                raise
+
+        return cleaned_msgs
