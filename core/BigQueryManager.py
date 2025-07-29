@@ -40,7 +40,9 @@ class BigQuery:
             self.client.get_table(table_id)
         except NotFound:
             table = bigquery.Table(table_id, schema=schema)
-            self.client.create_table(table)
+            created_table = self.client.create_table(table)
+            created_table.expires = None
+            self.client.update_table(created_table, ["expires"])
 
     def load_dataframe(
         self,
