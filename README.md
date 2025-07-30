@@ -16,11 +16,11 @@
 
     - [x] Do something about parsing the tickets (`TicketAPIResponse`)
 
-    - [ ] Fix ticket messages extraction
+    - [x] Fix ticket messages extraction
 
     - [x] Agents extraction
 
-    - [ ] Users extraction
+    - [x] Users extraction
 
     - [x] BigQuery integration
 
@@ -28,11 +28,11 @@
 
 ### **branch: `refactor-v1-ticket-messages-parsing`**
 
-- [ ] Parse ticket messages
+- [x] Parse ticket messages
 
     - Collect `userids`, then use that to check in `/agents` and `/users/{userID}` endpoint to determine who the sender and receiver of the message is
 
-- [ ] Work on `core/Users.py`
+- [x] Work on `core/Users.py`
 
 ---
 
