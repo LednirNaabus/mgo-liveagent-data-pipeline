@@ -41,7 +41,7 @@ def upsert_to_bq_with_staging(
     bq: BigQuery,
     df: pd.DataFrame,
     schema: List[SchemaField],
-    table_name: str
+    table_name: str,
 ) -> None:
     """
     Helper function for `Extractor` class that loads a DataFrame into a **staging** table, then executes a `MERGE`
@@ -57,12 +57,23 @@ def upsert_to_bq_with_staging(
         schema=schema
     )
 
-    update_columns = [
-    'owner_contactid', 'owner_email', 'owner_name', 'departmentid', 'agentid', 
-    'status', 'tags', 'code', 'channel_type', 'date_created', 'date_changed', 
-    'date_resolved', 'last_activity', 'last_activity_public', 'public_access_urlcode', 
-    'subject', 'custom_fields', 'date_due', 'date_deleted', 'datetime_extracted'
-    ]
+    update_columns = []
+
+    if table_name == "tickets":
+        update_columns = [
+        'owner_contactid', 'owner_email', 'owner_name', 'departmentid', 'agentid', 
+        'status', 'tags', 'code', 'channel_type', 'date_created', 'date_changed', 
+        'date_resolved', 'last_activity', 'last_activity_public', 'public_access_urlcode', 
+        'subject', 'custom_fields', 'date_due', 'date_deleted', 'datetime_extracted'
+        ]
+
+    if table_name == "users":
+        update_columns = [
+            'name', 'email', 'role', 'avatar_url'
+        ]
+
+    logging.info(f"update_columns: {update_columns}")
+
     all_columns = ['id'] + update_columns
     update_set_clauses = ',\n    '.join([f"{col} = source.{col}" for col in update_columns])
     insert_columns =', '.join(all_columns)

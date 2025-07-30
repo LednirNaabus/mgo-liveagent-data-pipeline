@@ -8,7 +8,6 @@ from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from core.Ticket import Ticket
 from core.Agent import Agent
-from core.User import User
 import pandas as pd
 import aiohttp
 import logging
@@ -50,7 +49,6 @@ class Extractor:
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
         self.agent = Agent(self.client)
-        self.user = User(self.client)
         self.bigquery = BigQuery()
         self.session = session 
 
@@ -101,9 +99,9 @@ class Extractor:
 
     async def extract_tickets_and_messages(
         self,
-        date,
-        filter_field,
+        date: pd.Timestamp,
         session: aiohttp.ClientSession,
+        filter_field: FilterField = FilterField.DATE_CHANGED,
         concurrent_limit: int = 10
     ):
         tickets = await self.extract_tickets(date, filter_field)
@@ -145,8 +143,18 @@ class Extractor:
                 message="No ticket messages fetched!"
             )
 
+        logging.info("Extracting user cache...")
+        user_data = self.ticket.get_user_cache()
+        user_list = list(user_data.values())
+        users_df = pd.DataFrame(user_list)
+
         logging.info("Generating schema and loading data to BigQuery...")
+        logging.info("Loading messages...")
         prepare_and_load_to_bq(self.bigquery, messages_processed, "messages", load_data=True)
+        logging.info("Loading messages...")
+        schema = prepare_and_load_to_bq(self.bigquery, users_df, "users", load_data=False)
+        upsert_to_bq_with_staging(self.bigquery, users_df, schema, "users")
+        logging.info("Done uploading to BigQuery!")
         self.clear_all_caches()
 
         return ExtractionResponse(

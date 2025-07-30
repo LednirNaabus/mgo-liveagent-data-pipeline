@@ -31,6 +31,12 @@ class Ticket:
             "_sortDir": "ASC"
         }
 
+    def get_ticket_metadata_cache(self) -> Dict[str, Dict]:
+        return self.ticket_metadata_cache
+
+    def get_user_cache(self) -> Dict[str, Dict[str, Any]]:
+        return self.message_processor.get_user_cache()
+
     async def fetch_tickets(
         self,
         session: aiohttp.ClientSession,
@@ -196,9 +202,6 @@ class Ticket:
         )
 
         return final_messages
-
-    def get_ticket_metadata_cache(self) -> Dict[str, Dict]:
-        return self.ticket_metadata_cache
 
     def clear_cache(self):
         self.ticket_metadata_cache.clear()

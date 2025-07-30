@@ -1,7 +1,7 @@
 from config.constants import PROJECT_ID, DATASET_NAME, LIVEAGENT_MGO_SYSTEM_USER_ID, LIVEAGENT_MGO_SPECIAL_USER_ID
 from core.LiveAgentClient import LiveAgentClient
+from typing import Dict, List, Set, Tuple, Any
 from core.BigQueryManager import BigQuery
-from typing import Dict, List, Set, Tuple
 from core.User import User
 import aiohttp
 import asyncio
@@ -35,6 +35,9 @@ class TicketMessageProcessor:
                 user_ids.add(message["agentid"])
 
         return user_ids
+
+    def get_user_cache(self) -> Dict[str, Dict[str, Any]]:
+        return self.user_cache
 
     async def load_agents_from_bq(self):
         if not self.bigquery_client:
@@ -106,7 +109,8 @@ class TicketMessageProcessor:
                         "id": user_id,
                         "name": name,
                         "email": user_info.get("email", ""),
-                        "role": user_info.get("role", "")
+                        "role": user_info.get("role", ""),
+                        "avatar_url": user_info.get("avatar_url", "")
                     }
                 successful_fetches += 1
 
