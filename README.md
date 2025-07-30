@@ -1,44 +1,33 @@
-# LiveAgent Client Template
+# MechaniGo and Live Agent Data Pipeline for Convo Analysis
 
----
+A streamlined conversation data extraction solution from Live Agent API for chat analysis using FastAPI and OpenAI API.
 
-## To Do (As of 7/30/2025):
+## Local Use
 
-- [ ] Refactor again
+- To run locally, install the dependencies first:
 
-    - [x] Create Data Extractor class
+```
+pip install -r requirements.txt
+```
 
-    - [ ] Add `settings.py` in `config/` directory
+- Configure your secrets:
 
-        - [ ] Add `Dev`, `Local`, and `Prod`
+    - [ ] OpenAI API key
 
-    - [ ] Create Logging
+    - [ ] Live Agent API key
 
-    - [x] Do something about parsing the tickets (`TicketAPIResponse`)
+    - [ ] Google API key
 
-    - [x] Fix ticket messages extraction
+- Run locally using the following command:
 
-    - [x] Agents extraction
+```
+python main.py
+```
 
-    - [ ] Users extraction
+# Documentation
 
-        - [ ] Users route
+- Access the documentation for the pipeline by entering the URL in your browser of choice:
 
-    - [x] BigQuery integration
-
-- [ ] Use `pydantic` instead of `dataclasses` in `api/schemas/`
-
-### **branch: ~~`refactor-v1-ticket-messages-parsing`~~**
-
-- [x] Parse ticket messages
-
-    - Collect `userids`, then use that to check in `/agents` and `/users/{userID}` endpoint to determine who the sender and receiver of the message is
-
-- [x] Work on `core/Users.py`
-
----
-
-# Notes
-
-1. `/process-tickets` -> Fetch from API then upload to BigQuery (`POST`)
-1. `/tickets` -> Get from BigQuery (`GET`)
+```
+localhost:8080/docs
+```
