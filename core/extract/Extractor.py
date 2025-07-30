@@ -201,8 +201,17 @@ class Extractor:
             concurrent_limit=concurrent_limit
         )
 
+        messages_processed = process_ticket_messages(messages)
+        if messages_processed.empty:
+            return ExtractionResponse(
+                status=ResponseStatus.ERROR,
+                count="0",
+                data=[],
+                message="No ticket messages fetched!"
+            )
+
         logging.info("Generating schema and loading data to BigQuery...")
-        prepare_and_load_to_bq(self.bigquery, pd.DataFrame(messages), "messages_delete", load_data=True)
+        prepare_and_load_to_bq(self.bigquery, messages_processed, "messages_delete", load_data=True)
         self.clear_all_caches()
 
         return ExtractionResponse(
