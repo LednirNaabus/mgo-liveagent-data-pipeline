@@ -64,7 +64,3 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
         target_tz=MNL_TZ
     )
     return agents_df
-
-# TODO:
-# Add extract_reference_code()
-# Add process_ticket_message()

@@ -6,6 +6,7 @@ BASE_URL = "https://mechanigo.ladesk.com/api/v3"
 THROTTLE_DELAY = 0
 
 LIVEAGENT_MGO_SYSTEM_USER_ID = "system00"
+LIVEAGENT_MGO_SPECIAL_USER_ID = "0054iwg"
 
 # BigQuery
 PROJECT_ID = "mechanigo-liveagent"

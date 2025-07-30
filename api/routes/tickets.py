@@ -69,9 +69,8 @@ async def process_single_ticket_messages(
 # Change:
 # - Remove 'table_name' -> not needed
 # - Hard code table creation for both tickets and ticket messages
-async def process_ticket_and_messages(
+async def process_tickets_and_messages(
     request: Request,
-    table_name: str,
     is_initial: bool = Query(False),
     date: Optional[str] = Query(default=None, description="Start-of-month date (YYYY-MM-DD)")
 ):
@@ -79,32 +78,22 @@ async def process_ticket_and_messages(
     date, filter_field = resolve_extraction_date(is_initial, date)
     extractor = create_extractor(
         max_page=1,
-        per_page=1,
-        table_name=table_name,
+        per_page=2,
         session=session
     )
 
-    # TODO: add BigQuery save here
-    tickets_res = await extractor.extract_tickets(date, filter_field)
-    ticket_ids = [ticket["id"] for ticket in tickets_res.data]
-    
-    result = {
-        "status": tickets_res.status,
-        "ticket_count": tickets_res.count,
-        "ticket_ids": ticket_ids,
-        "ticket_message": tickets_res.message if hasattr(tickets_res, "message") else None
+    response = await extractor.extract_tickets_and_messages(
+        date=date,
+        filter_field=filter_field,
+        session=session
+    )
+
+    res_data = {
+        "status": response.status,
+        "count": response.count,
+        "data": response.data
     }
-
-    messages = await extractor.extract_ticket_messages(
-        ticket_ids=ticket_ids,
-        session=session
-    )
-
-    result.update({
-        "message_count": messages.count
-    })
-
-    return result
+    return res_data
 
 @router.get("/tickets")
 async def get_tickets(request: Request):

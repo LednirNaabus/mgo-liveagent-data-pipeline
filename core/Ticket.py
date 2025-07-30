@@ -1,3 +1,4 @@
+from core.TicketMessageProcessor import TicketMessageProcessor
 from api.schemas.response import ExtractionResponse
 from core.LiveAgentClient import LiveAgentClient
 from typing import Dict, List, Any
@@ -17,10 +18,10 @@ class Ticket:
     def __init__(self, client: LiveAgentClient):
         self.client = client
         self.user = User(self.client)
+        self.message_processor = TicketMessageProcessor(self.client)
         self.endpoint = "tickets"
 
-        self.agents_cache = {}
-        self.unique_userids = set()
+        self.ticket_metadata_cache = {}
 
     def _default_payload(self) -> Dict[str, Any]:
         return {
@@ -53,11 +54,21 @@ class Ticket:
             ticket['date_deleted'] = ticket.get('date_deleted')
             ticket['date_resolved'] = ticket.get('date_resolved')
 
+            ticket_id = ticket.get("id")
+            if ticket_id:
+                self.ticket_metadata_cache[ticket_id] = {
+                    "ticket_id": ticket_id,
+                    "owner_name": ticket.get("owner_name", ""),
+                    "agentid": ticket.get("agentid", "")
+                }
+
         return pd.DataFrame(data)
 
     async def fetch_ticket_message(
         self,
         ticket_id: str,
+        ticket_agent_id: str,
+        ticket_owner_name: str,
         max_page: int,
         per_page: int,
         session: aiohttp.ClientSession
@@ -74,14 +85,24 @@ class Ticket:
             max_pages=max_page
         )
 
+        ticket_metadata = self.ticket_metadata_cache.get(
+            ticket_id, {
+                "ticket_id": ticket_id,
+                "agentid": ticket_agent_id,
+                "owner_name": ticket_owner_name
+            }
+        )
+
         for message in messages_data:
-            message['ticket_id'] = ticket_id
+            message.update(ticket_metadata)
 
         return messages_data
 
     async def fetch_ticket_messages_batch(
         self,
         ticket_ids: List[str],
+        ticket_agentids: List[str],
+        ticket_owner_names: List[str],
         max_page: int,
         per_page: int,
         session: aiohttp.ClientSession,
@@ -91,33 +112,37 @@ class Ticket:
         For fetching multiple tickets concurrently.
         """
         semaphore = asyncio.Semaphore(concurrent_limit)
-        async def fetch_single_ticket_messages(ticket_id: str):
+        async def fetch_single_ticket_messages(ticket_id: str, owner_name: str, agent_id: str):
             async with semaphore:
                 try:
                     logging.info(f"Fetching messages for ticket {ticket_id}")
                     return await self.fetch_ticket_message(
-                        ticket_id, max_page, per_page, session
+                        ticket_id, agent_id, owner_name, max_page, per_page, session
                     )
                 except Exception as e:
                     logging.error(f"Error fetching messages for ticket {ticket_id}: {e}")
                     return []
 
-        tasks = [fetch_single_ticket_messages(ticket_id) for ticket_id in ticket_ids]
+        tasks = [
+            fetch_single_ticket_messages(
+                ticket_id,
+                ticket_agentids[i] if ticket_agentids else None,
+                ticket_owner_names[i] if ticket_owner_names else None
+            )
+            for i, ticket_id in enumerate(ticket_ids)
+        ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # get ticket ids
-        # ticket owner name
-        # ticket agent name
-
         flattened_messages = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logging.error(f"Failed to fetch messages for ticket {ticket_ids[i]}: {result}")
+                continue
 
-            logging.info(f"Successfully fetched messages for {len([r for r in results if not isinstance(r, Exception)])} out of {len(ticket_ids)} tickets.")
             for message in result:
                 base_info = {
                     "ticket_id": ticket_ids[i],
+                    "owner_name": ticket_owner_names[i] if ticket_agentids else None,
+                    "agentid": ticket_agentids[i] if ticket_agentids else None,
                     "message_group_id": message.get("id"),
                     "parent_id": message.get("parent_id"),
                     "userid": message.get("userid"),
@@ -148,4 +173,36 @@ class Ticket:
                 else:
                     flattened_messages.append(base_info)
         
+        logging.info(f"Successfully fetched messages for {len([r for r in results if not isinstance(r, Exception)])} out of {len(ticket_ids)} tickets.")
         return flattened_messages
+
+    async def fetch_messages_with_sender_receiver(
+        self,
+        ticket_ids: List[str],
+        ticket_agentids: List[str],
+        ticket_owner_names: List[str],
+        max_page: int,
+        per_page: int,
+        session: aiohttp.ClientSession,
+        concurrent_limit: int = 10
+    ) -> ExtractionResponse:
+        messages_with_metadata = await self.fetch_ticket_messages_batch(
+            ticket_ids, ticket_agentids, ticket_owner_names, max_page, per_page, session, concurrent_limit
+        )
+
+        final_messages = await self.message_processor.process_messages_with_metadata(
+            messages_data=messages_with_metadata, session=session
+        )
+
+        return final_messages
+
+    def get_ticket_metadata_cache(self) -> Dict[str, Dict]:
+        return self.ticket_metadata_cache
+
+    def clear_cache(self):
+        self.ticket_metadata_cache.clear()
+        logging.info("Ticket metadata cleared!")
+        self.message_processor.agent_cache.clear()
+        logging.info("Agent cache cleared!")
+        self.message_processor.user_cache.clear()
+        logging.info("User cache cleared!")

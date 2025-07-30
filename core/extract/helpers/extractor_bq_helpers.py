@@ -14,7 +14,7 @@ def prepare_and_load_to_bq(
     bq: BigQuery,
     df: pd.DataFrame,
     table_name: str,
-    flag: bool = True,
+    load_data: bool = True,
     write_mode: str = None
 ) -> List[SchemaField]:
     """
@@ -33,7 +33,7 @@ def prepare_and_load_to_bq(
     bq.ensure_dataset()
     schema = bq.generate_schema(df)
     bq.ensure_table(table_name, schema)
-    if flag:
+    if load_data:
         bq.load_dataframe(df, table_name, write_disposition=write_mode)
     return schema
 

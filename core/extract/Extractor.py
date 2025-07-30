@@ -7,6 +7,7 @@ from core.LiveAgentClient import LiveAgentClient
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from core.Ticket import Ticket
+from typing import List
 from core.Agent import Agent
 import pandas as pd
 import aiohttp
@@ -66,7 +67,7 @@ class Extractor:
         if filter_field == FilterField.DATE_CREATED:
             ticket_payload["_sortDir"] = "ASC"
         try:
-            logging.info(f"Extracting using the filer: {ticket_payload["_filters"]}")
+            logging.info(f"Extracting using the following filter: {ticket_payload["_filters"]}")
             tickets_raw = await self.ticket.fetch_tickets(self.session, ticket_payload, self.max_page, self.per_page)
             tickets_processed = process_tickets(tickets_raw)
             if tickets_processed.empty:
@@ -77,8 +78,8 @@ class Extractor:
                     message="No tickets fetched!"
                 )
             logging.info("Generating schema and loading data to BigQuery...")
-            # schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, self.table_name, flag=False)
-            # upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, self.table_name)
+            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, "tickets_delete", load_data=False)
+            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, "tickets_delete")
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -131,8 +132,6 @@ class Extractor:
                 data=messages
             )
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             logging.error(f"Exception occurred while extracting ticket messages: {e}")
             return ExtractionResponse(
                 count="0",
@@ -164,6 +163,56 @@ class Extractor:
                 data=[],
                 status=ResponseStatus.ERROR
             )
+
+    async def extract_tickets_and_messages(
+        self,
+        date,
+        filter_field,
+        session: aiohttp.ClientSession,
+        concurrent_limit: int = 10
+    ):
+        tickets = await self.extract_tickets(date, filter_field)
+        tickets_df = pd.DataFrame(tickets.data)
+        if isinstance(tickets_df, pd.DataFrame):
+            ticket_ids = tickets_df["id"].tolist()
+            ticket_agentids = tickets_df["agentid"].tolist()
+            ticket_ownernames = tickets_df["owner_name"].tolist()
+        else:
+            ticket_ids = [ticket.get("id") for ticket in tickets_df.data if ticket.get("id")]
+            ticket_agentids = [ticket.get("agentid") for ticket in tickets_df.data if ticket.get("agentid")]
+            ticket_ownernames = [ticket.get("owner_name") for ticket in tickets_df.data if ticket.get("owner_name")]
+
+        logging.info(f"Found {len(ticket_ids)} tickets")
+
+        if not ticket_ids:
+            return ExtractionResponse(
+                status=ResponseStatus.ERROR,
+                count="0",
+                data=[]
+            )
+
+        messages = await self.ticket.fetch_messages_with_sender_receiver(
+            ticket_ids=ticket_ids,
+            ticket_agentids=ticket_agentids,
+            ticket_owner_names=ticket_ownernames,
+            max_page=self.max_page,
+            per_page=self.per_page,
+            session=session,
+            concurrent_limit=concurrent_limit
+        )
+
+        logging.info("Generating schema and loading data to BigQuery...")
+        prepare_and_load_to_bq(self.bigquery, pd.DataFrame(messages), "messages_delete", load_data=True)
+        self.clear_all_caches()
+
+        return ExtractionResponse(
+            status=ResponseStatus.SUCCESS,
+            count=str(len(tickets.data) + len(messages)),
+            data={
+                "tickets": tickets,
+                "messages": messages
+            }
+        )
 
     async def fetch_bq_tickets(self) -> ExtractionResponse:
         try:
@@ -214,3 +263,8 @@ class Extractor:
                 data=[],
                 status=ResponseStatus.ERROR
             )
+
+    def clear_all_caches(self):
+        logging.info("Clearing caches...")
+        self.ticket.clear_cache()
+        logging.info("All caches cleared!")
