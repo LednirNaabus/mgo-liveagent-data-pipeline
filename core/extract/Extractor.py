@@ -8,6 +8,7 @@ from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from core.Ticket import Ticket
 from core.Agent import Agent
+from core.User import User
 import pandas as pd
 import aiohttp
 import logging
@@ -49,6 +50,7 @@ class Extractor:
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
         self.agent = Agent(self.client)
+        self.user = User(self.client)
         self.bigquery = BigQuery()
         self.session = session 
 
@@ -178,9 +180,7 @@ class Extractor:
                 message="Table not found!"
             )
 
-    async def extract_agents(
-        self
-    ) -> ExtractionResponse:
+    async def extract_agents(self) -> ExtractionResponse:
         try:
             agents_raw = await self.agent.get_agents(self.session, self.max_page, self.per_page)
             agents_processed = process_agents(agents_raw)
@@ -192,7 +192,7 @@ class Extractor:
                     message="No agents found!"
                 )
             logging.info("Generating schema and loading data to BigQuery...")
-            prepare_and_load_to_bq(self.bigquery, agents_processed, self.table_name, write_mode="WRITE_TRUNCATE")
+            prepare_and_load_to_bq(self.bigquery, agents_processed, "agents", write_mode="WRITE_TRUNCATE")
             return ExtractionResponse(
                 status=ResponseStatus.SUCCESS,
                 count=str(len(agents_raw)),
@@ -200,6 +200,18 @@ class Extractor:
             )
         except Exception as e:
             logging.error(f"Exception occurred while extracting agents: {e}")
+            return ExtractionResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR
+            )
+
+    async def extract_users(self) -> ExtractionResponse:
+        try:
+            # users_raw = await self.user.get_user()
+            return "Hello, World!"
+        except Exception as e:
+            logging.error(f"Exception occurred while extracing users: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],

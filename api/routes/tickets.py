@@ -14,10 +14,7 @@ from config.constants import TEST_MAX_PAGE, TEST_PER_PAGE
 router = APIRouter()
 
 ########## FOR CLOUD SCHEDULER ##########
-@router.post("/process-tickets-and-messages/{table_name}")
-# Change:
-# - Remove 'table_name' -> not needed
-# - Hard code table creation for both tickets and ticket messages
+@router.post("/process-tickets-and-messages")
 async def process_tickets_and_messages(
     request: Request,
     is_initial: bool = Query(False),

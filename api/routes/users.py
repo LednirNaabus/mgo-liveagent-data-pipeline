@@ -8,12 +8,12 @@ from api.common import (
 
 router = APIRouter()
 
-@router.post("/process-agents")
-async def process_agents(request: Request):
+@router.post("/process-users")
+async def process_users(request: Request):
     session = get_aiohttp_session(request)
     extractor = create_extractor(
         max_page=MAX_VALUE,
         per_page=MAX_VALUE,
         session=session
     )
-    return await extractor.extract_agents()
+    return await extractor.extract_users()
