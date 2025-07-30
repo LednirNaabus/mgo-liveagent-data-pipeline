@@ -184,9 +184,13 @@ class TicketMessageProcessor:
         for msg in messages_data:
             sender_receiver_info = self._determine_sender_receiver(msg)
 
+            agent_info = self.agent_cache.get(msg.get("agentid"))
+            agent_name = agent_info["name"] if agent_info else "Unknown Agent"
+
             enhanced_msg = {
                 **msg,
-                **sender_receiver_info
+                **sender_receiver_info,
+                "agent_name": agent_name
             }
             processed_messages.append(enhanced_msg)
 

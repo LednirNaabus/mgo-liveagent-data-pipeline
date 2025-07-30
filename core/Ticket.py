@@ -143,6 +143,7 @@ class Ticket:
                     "ticket_id": ticket_ids[i],
                     "owner_name": ticket_owner_names[i] if ticket_agentids else None,
                     "agentid": ticket_agentids[i] if ticket_agentids else None,
+                    "agent_name": "",
                     "message_group_id": message.get("id"),
                     "parent_id": message.get("parent_id"),
                     "userid": message.get("userid"),
