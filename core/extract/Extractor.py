@@ -223,12 +223,12 @@ class Extractor:
             }
         )
 
-    async def fetch_bq_tickets(self) -> ExtractionResponse:
+    async def fetch_bq_table(self, table_name: str, limit: int = 10) -> ExtractionResponse:
+        # Set limit to 10 for now
         try:
-            # Temporary: Limit 10 tickets for now
             query = """
-            SELECT * FROM `{}.{}.tickets` LIMIT 10
-            """.format(PROJECT_ID, DATASET_NAME)
+            SELECT * FROM `{}.{}.{}` LIMIT {}
+            """.format(PROJECT_ID, DATASET_NAME, table_name, limit)
             df = self.bigquery.sql_query_bq(query)
             df = df.to_dict(orient="records")
             return ExtractionResponse(
@@ -237,12 +237,12 @@ class Extractor:
                 data=df
             )
         except Exception as e:
-            logging.error(f"Exception occurred while querying tickets from BigQuery: {e}")
+            logging.error(f"Exception occurred while querying for {table_name}: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],
                 status=ResponseStatus.ERROR,
-                message="Table not found."
+                message="Table not found!"
             )
 
     async def extract_agents(

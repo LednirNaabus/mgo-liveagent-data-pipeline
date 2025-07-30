@@ -101,4 +101,12 @@ async def get_tickets(request: Request):
     extractor = create_extractor(
         session=session
     )
-    return await extractor.fetch_bq_tickets()
+    return await extractor.fetch_bq_table("tickets")
+
+@router.get("/messages")
+async def get_messages(request: Request):
+    session = get_aiohttp_session(request)
+    extractor = create_extractor(
+        session=session
+    )
+    return await extractor.fetch_bq_table("messages")
