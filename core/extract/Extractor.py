@@ -7,7 +7,6 @@ from core.LiveAgentClient import LiveAgentClient
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from core.Ticket import Ticket
-from typing import List
 from core.Agent import Agent
 import pandas as pd
 import aiohttp
@@ -78,8 +77,8 @@ class Extractor:
                     message="No tickets fetched!"
                 )
             logging.info("Generating schema and loading data to BigQuery...")
-            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, "tickets_delete", load_data=False)
-            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, "tickets_delete")
+            schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, "tickets", load_data=False)
+            upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, "tickets")
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -92,72 +91,6 @@ class Extractor:
             )
         except Exception as e:
             logging.error(f"Exception occurred while extracting tickets: {e}")
-            return ExtractionResponse(
-                count="0",
-                data=[],
-                status=ResponseStatus.ERROR
-            )
-
-    # fetch ticket messages
-    # prepare to load to BQ
-    async def extract_ticket_messages(
-        self,
-        ticket_ids,
-        session: aiohttp.ClientSession
-    ) -> ExtractionResponse:
-        try:
-            messages_raw = await self.ticket.fetch_ticket_messages_batch(
-                ticket_ids=ticket_ids,
-                max_page=self.max_page,
-                per_page=self.per_page,
-                session=session,
-                concurrent_limit=10
-            )
-            messages_processed = process_ticket_messages(messages_raw)
-            if messages_processed.empty:
-                return ExtractionResponse(
-                    status=ResponseStatus.ERROR,
-                    count="0",
-                    data=[],
-                    message="No messages fetched!"
-                )
-            messages = (
-                messages_processed
-                .where(pd.notnull(messages_processed), None)
-                .to_dict(orient="records")
-            )
-            return ExtractionResponse(
-                status=ResponseStatus.SUCCESS,
-                count=str(len(messages)),
-                data=messages
-            )
-        except Exception as e:
-            logging.error(f"Exception occurred while extracting ticket messages: {e}")
-            return ExtractionResponse(
-                count="0",
-                data=[],
-                status=ResponseStatus.ERROR
-            )
-
-    async def extract_single_ticket_message(
-        self,
-        ticket_id: str,
-        session: aiohttp.ClientSession
-    ) -> ExtractionResponse:
-        try:
-            message = await self.ticket.fetch_ticket_message(
-                ticket_id=ticket_id,
-                max_page=self.max_page,
-                per_page=self.per_page,
-                session=session
-            )
-            return ExtractionResponse(
-                status=ResponseStatus.SUCCESS,
-                count=str(len(message)),
-                data=message
-            )
-        except Exception as e:
-            logging.error(f"Exception occurred while extracting ticket message: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],
@@ -211,7 +144,7 @@ class Extractor:
             )
 
         logging.info("Generating schema and loading data to BigQuery...")
-        prepare_and_load_to_bq(self.bigquery, messages_processed, "messages_delete", load_data=True)
+        prepare_and_load_to_bq(self.bigquery, messages_processed, "messages", load_data=True)
         self.clear_all_caches()
 
         return ExtractionResponse(

@@ -10,10 +10,10 @@ LIVEAGENT_MGO_SPECIAL_USER_ID = "0054iwg"
 
 # BigQuery
 PROJECT_ID = "mechanigo-liveagent"
-DATASET_NAME = "conversations"
+DATASET_NAME = "conversations_test"
 
 MAX_VALUE = 100
 
 # For testing purposes
 TEST_MAX_PAGE = 1
-TEST_PER_PAGE = 5
+TEST_PER_PAGE = 1
