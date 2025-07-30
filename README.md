@@ -2,7 +2,7 @@
 
 ---
 
-## To Do (As of 7/26/2025):
+## To Do (As of 7/30/2025):
 
 - [ ] Refactor again
 
@@ -20,7 +20,9 @@
 
     - [x] Agents extraction
 
-    - [x] Users extraction
+    - [ ] Users extraction
+
+        - [ ] Users route
 
     - [x] BigQuery integration
 
