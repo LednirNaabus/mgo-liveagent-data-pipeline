@@ -1,7 +1,6 @@
 """
 Main configuration file for the project.
 """
-from config.constants import BASE_URL
 from dotenv import load_dotenv
 import pytz
 import os
@@ -9,11 +8,15 @@ import os
 load_dotenv()
 
 LIVEAGENT_API_KEY = os.getenv('LIVEAGENT_API_KEY')
-try:
-    if not LIVEAGENT_API_KEY:
-        raise ValueError(f"Missing API key for '{BASE_URL}'!")
-except ValueError as e:
-    print(e)
-    exit(1)
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+missing_keys = []
+if not LIVEAGENT_API_KEY:
+    missing_keys.append("LIVEAGENT_API_KEY")
+if not OPENAI_API_KEY:
+    missing_keys.append("OPENAI_API_KEY")
+
+if missing_keys:
+    print(f"Missing API keys: {', '.join(missing_keys)}")
 
 MNL_TZ = pytz.timezone("Asia/Manila")

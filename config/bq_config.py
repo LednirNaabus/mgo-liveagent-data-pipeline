@@ -1,8 +1,11 @@
 from config.constants import PROJECT_ID, DATASET_NAME
 from google.oauth2 import service_account
 from google.cloud import bigquery
+from dotenv import load_dotenv
 import json
 import os
+
+load_dotenv()
 
 CREDS = os.getenv("CREDENTIALS")
 
