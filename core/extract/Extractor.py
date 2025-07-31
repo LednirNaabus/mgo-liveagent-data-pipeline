@@ -1,4 +1,4 @@
-from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from config.constants import PROJECT_ID, DATASET_NAME
@@ -8,6 +8,7 @@ from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from core.Ticket import Ticket
 from core.Agent import Agent
+from core.Tag import Tag
 import pandas as pd
 import aiohttp
 import logging
@@ -49,6 +50,7 @@ class Extractor:
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
         self.agent = Agent(self.client)
+        self.tag = Tag(self.client)
         self.bigquery = BigQuery()
         self.session = session 
 
@@ -79,6 +81,7 @@ class Extractor:
             logging.info("Generating schema and loading data to BigQuery...")
             schema = prepare_and_load_to_bq(self.bigquery, tickets_processed, "tickets", load_data=False)
             upsert_to_bq_with_staging(self.bigquery, tickets_processed, schema, "tickets")
+            logging.info("Done loading to BigQuery!")
             tickets = (
                 tickets_processed
                 .where(pd.notnull(tickets_processed), None)
@@ -154,7 +157,7 @@ class Extractor:
         logging.info("Loading messages...")
         schema = prepare_and_load_to_bq(self.bigquery, users_df, "users", load_data=False)
         upsert_to_bq_with_staging(self.bigquery, users_df, schema, "users")
-        logging.info("Done uploading to BigQuery!")
+        logging.info("Done loading to BigQuery!")
         self.clear_all_caches()
 
         return ExtractionResponse(
@@ -201,6 +204,7 @@ class Extractor:
                 )
             logging.info("Generating schema and loading data to BigQuery...")
             prepare_and_load_to_bq(self.bigquery, agents_processed, "agents", write_mode="WRITE_TRUNCATE")
+            logging.info("Done loading to BigQuery!")
             return ExtractionResponse(
                 status=ResponseStatus.SUCCESS,
                 count=str(len(agents_raw)),
@@ -214,12 +218,27 @@ class Extractor:
                 status=ResponseStatus.ERROR
             )
 
-    async def extract_users(self) -> ExtractionResponse:
+    async def extract_tags(self) -> ExtractionResponse:
         try:
-            # users_raw = await self.user.get_user()
-            return "Hello, World!"
+            tags_raw = await self.tag.get_tags(self.session)
+            tags_processed = process_tags(tags_raw)
+            if tags_processed.empty:
+                return ExtractionResponse(
+                    status=ResponseStatus.ERROR,
+                    count="0",
+                    data=[],
+                    message="No tags found!"
+                )
+            logging.info("Generating schema and loading data to BigQuery...")
+            prepare_and_load_to_bq(self.bigquery, tags_processed, "tags", write_mode="WRITE_TRUNCATE")
+            logging.info("Done loading to BigQuery!")
+            return ExtractionResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(tags_raw.data)),
+                data=tags_raw
+            )
         except Exception as e:
-            logging.error(f"Exception occurred while extracing users: {e}")
+            logging.error(f"Exception occurred while extracting tags: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],

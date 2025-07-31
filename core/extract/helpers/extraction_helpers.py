@@ -1,4 +1,5 @@
 from api.schemas.response import ExtractionResponse
+from utils.df_utils import fill_nan_values
 from utils.date_utils import set_timezone
 from config.config import MNL_TZ
 import pandas as pd
@@ -64,3 +65,8 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
         target_tz=MNL_TZ
     )
     return agents_df
+
+def process_tags(tags: ExtractionResponse) -> pd.DataFrame:
+    tags_df = pd.DataFrame(tags.data)
+    tags_df = fill_nan_values(tags_df)
+    return tags_df
