@@ -8,4 +8,8 @@ router = APIRouter()
 
 @router.post("/process-convo")
 async def process_convo(request: Request):
-    return "Hello"
+    session = get_aiohttp_session(request)
+    extractor = create_extractor(
+        session=session
+    )
+    return await extractor.extract_conversation_analysis()

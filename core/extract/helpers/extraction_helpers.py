@@ -1,8 +1,13 @@
+from core.extract.ConvoDataExtract import ConvoDataExtract
 from api.schemas.response import ExtractionResponse
 from utils.df_utils import fill_nan_values
+from core.BigQueryManager import BigQuery
 from utils.date_utils import set_timezone
+from config.config import OPENAI_API_KEY
 from config.config import MNL_TZ
+from typing import Tuple
 import pandas as pd
+import asyncio
 import re
 
 def add_extraction_timestamp(df: pd.DataFrame) -> pd.DataFrame:
@@ -65,6 +70,50 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
         target_tz=MNL_TZ
     )
     return agents_df
+
+def foo(bq_client: BigQuery, project_id: str, dataset_name: str, limit: int = 5) -> Tuple:
+    now = pd.Timestamp.now(tz="UTC").astimezone(MNL_TZ)
+    date = now - pd.Timedelta(hours=6)
+    start = date.floor('h')
+    end = start + pd.Timedelta(hours=6) - pd.Timedelta(seconds=1)
+    start_str = start.strftime("%Y-%m-%d %H:%M:%S")
+    end_str = end.strftime("%Y-%m-%d %H:%M:%S")
+
+    query = f"""
+    SELECT
+    DISTINCT ticket_id
+    FROM {project_id}.{dataset_name}.messages
+    WHERE message_format = 'T'
+        AND datecreated BETWEEN '{start_str}' AND '{end_str}'
+    """
+
+    if limit is not None:
+        query += f"\nLIMIT {limit}"
+    return bq_client.sql_query_bq(query, return_data=True)
+
+async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: asyncio.Semaphore) -> pd.DataFrame:
+    async with semaphore:
+        print(f"Ticket ID: {ticket_id}")
+        processor = await ConvoDataExtract.create(ticket_id, api_key=OPENAI_API_KEY)
+        tokens = processor.data.get("tokens")
+        new_df = pd.DataFrame([processor.data.get("data")])
+        tokens_df = pd.DataFrame([tokens], columns=["tokens"])
+        combined = pd.concat([new_df, tokens_df], axis=1)
+        combined['date_extracted'] = date_extracted
+        combined['date_extracted'] = pd.to_datetime(combined['date_extracted'], errors='coerce')
+        combined = set_timezone(combined, "date_extracted", target_tz=MNL_TZ)
+        combined.insert(0, 'ticket_id', ticket_id)
+        return combined
+
+async def process_chat(ticket_ids: pd.Series):
+    date_extracted = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")
+    semaphore = asyncio.Semaphore(10)
+    tasks = [
+        process_single_chat(ticket_id, date_extracted, semaphore)
+        for ticket_id in ticket_ids["ticket_id"]
+    ]
+    results = await asyncio.gather(*tasks)
+    return pd.concat(results, ignore_index=True)
 
 def process_tags(tags: ExtractionResponse) -> pd.DataFrame:
     tags_df = pd.DataFrame(tags.data)

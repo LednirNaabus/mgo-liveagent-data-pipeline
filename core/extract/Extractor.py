@@ -1,4 +1,4 @@
-from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, foo, process_chat
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from config.constants import PROJECT_ID, DATASET_NAME
@@ -239,6 +239,29 @@ class Extractor:
             )
         except Exception as e:
             logging.error(f"Exception occurred while extracting tags: {e}")
+            return ExtractionResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR
+            )
+
+    async def extract_conversation_analysis(self) -> ExtractionResponse:
+        try:
+            # step 1: Query tickets with the use of a filter
+            recent_tickets = foo(self.bigquery, PROJECT_ID, "conversations", limit=1)
+            # step 2: Processing
+            ticket_messages_df = await process_chat(recent_tickets)
+            logging.info(ticket_messages_df)
+                # step 2.1: chat analysis
+                    # step 2.1.1: process_chat
+                    # step 2.1.2: geolocation
+                # step 2.2: merging to BQ
+
+            return ticket_messages_df.to_dict(orient="records")
+        except Exception as e:
+            import traceback
+            logging.info(f"Exception occurred while extracting conversation analysis: {e}")
+            traceback.print_exc()
             return ExtractionResponse(
                 count="0",
                 data=[],
