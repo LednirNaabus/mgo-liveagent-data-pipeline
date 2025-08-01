@@ -51,7 +51,7 @@ def process_ticket_messages(messages: pd.DataFrame) -> pd.DataFrame:
             target_tz=MNL_TZ
         )
         # Extract reference code
-        df["reference_code"] = df["message_content"].apply(extract_reference_code)
+        df["reference_code"] = df["message"].apply(extract_reference_code)
         return df
     except Exception as e:
         print(f"Exception occurred while processing ticket messages: {e}")
