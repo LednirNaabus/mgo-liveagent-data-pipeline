@@ -47,7 +47,43 @@ def upsert_to_bq_with_staging(
     Helper function for `Extractor` class that loads a DataFrame into a **staging** table, then executes a `MERGE`
     operation into the main table. For the cleanup step, drops the **staging** table.
     """
+    # TODO: Refactor this block later
     staging_table_name = f"{table_name}_staging"
+    update_columns = []
+
+    if table_name == "tickets":
+        update_columns = [
+            'owner_contactid', 'owner_email', 'owner_name', 'departmentid', 'agentid', 
+            'status', 'tags', 'code', 'channel_type', 'date_created', 'date_changed', 
+            'date_resolved', 'last_activity', 'last_activity_public', 'public_access_urlcode', 
+            'subject', 'custom_fields', 'date_due', 'date_deleted', 'datetime_extracted'
+        ]
+
+    if table_name == "users":
+        update_columns = [
+            'name', 'email', 'role', 'avatar_url'
+        ]
+
+    if table_name == "convo_analysis":
+        update_columns = [
+            'service_category', 'summary', 'intent_rating', 'engagement_rating', 'clarity_rating',
+            'resolution_rating', 'sentiment_rating', 'location', 'schedule_date', 'schedule_time',
+            'car', 'inspection', 'quotation', 'tokens', 'date_extracted', 'address', 'viable', 'model'
+        ]
+        all_columns = ['ticket_id'] + update_columns
+        identifier = "ticket_id"
+        # For historical data purposes
+        history = f"{table_name}_history"
+        bq.load_dataframe(
+            df,
+            history,
+            write_disposition="WRITE_APPEND",
+            schema=schema
+        )
+    else:
+        all_columns = ['id'] + update_columns
+        identifier = "id"
+
     logging.info(f"Table staging name: {staging_table_name}")
 
     bq.load_dataframe(
@@ -57,24 +93,7 @@ def upsert_to_bq_with_staging(
         schema=schema
     )
 
-    update_columns = []
-
-    if table_name == "tickets":
-        update_columns = [
-        'owner_contactid', 'owner_email', 'owner_name', 'departmentid', 'agentid', 
-        'status', 'tags', 'code', 'channel_type', 'date_created', 'date_changed', 
-        'date_resolved', 'last_activity', 'last_activity_public', 'public_access_urlcode', 
-        'subject', 'custom_fields', 'date_due', 'date_deleted', 'datetime_extracted'
-        ]
-
-    if table_name == "users":
-        update_columns = [
-            'name', 'email', 'role', 'avatar_url'
-        ]
-
     logging.info(f"update_columns: {update_columns}")
-
-    all_columns = ['id'] + update_columns
     update_set_clauses = ',\n    '.join([f"{col} = source.{col}" for col in update_columns])
     insert_columns =', '.join(all_columns)
     insert_values = ', '.join([f"source.{col}" for col in all_columns])
@@ -82,7 +101,7 @@ def upsert_to_bq_with_staging(
     merge_query = f"""
     MERGE `{PROJECT_ID}.{DATASET_NAME}.{table_name}` AS target
     USING `{PROJECT_ID}.{DATASET_NAME}.{staging_table_name}` AS source
-    ON target.id = source.id
+    ON target.{identifier} = source.{identifier}
     WHEN MATCHED THEN
         UPDATE SET
             {update_set_clauses}

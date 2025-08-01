@@ -4,11 +4,18 @@ from utils.df_utils import fill_nan_values
 from core.BigQueryManager import BigQuery
 from utils.date_utils import set_timezone
 from config.config import OPENAI_API_KEY
+from core.Geocode import Geocoder
 from config.config import MNL_TZ
 from typing import Tuple
 import pandas as pd
+import logging
 import asyncio
 import re
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def add_extraction_timestamp(df: pd.DataFrame) -> pd.DataFrame:
     df["datetime_extracted"] = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
@@ -114,6 +121,20 @@ async def process_chat(ticket_ids: pd.Series):
     ]
     results = await asyncio.gather(*tasks)
     return pd.concat(results, ignore_index=True)
+
+def process_address(df: pd.Series, gc: Geocoder):
+    locations = []
+    for i in df["location"]:
+        try:
+            result = gc.geocode(i)
+            if result is None:
+                result = {"lat": None, "lng": None, "address" : i}
+        except AttributeError as e:
+            logging.error(f"AttributeError: {e}")
+        except Exception as e:
+            result = {"lat": None, "address": i, "error": str({e})}
+        locations.append(result)
+    return pd.DataFrame(locations)
 
 def process_tags(tags: ExtractionResponse) -> pd.DataFrame:
     tags_df = pd.DataFrame(tags.data)

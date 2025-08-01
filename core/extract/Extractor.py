@@ -1,11 +1,13 @@
-from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, foo, process_chat
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, foo, process_chat, process_address
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from config.constants import PROJECT_ID, DATASET_NAME
 from core.schemas.TicketFilter import FilterField
 from core.LiveAgentClient import LiveAgentClient
+from utils.geocode_utils import tag_viable
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
+from core.Geocode import Geocoder
 from core.Ticket import Ticket
 from core.Agent import Agent
 from core.Tag import Tag
@@ -52,6 +54,7 @@ class Extractor:
         self.agent = Agent(self.client)
         self.tag = Tag(self.client)
         self.bigquery = BigQuery()
+        self.geocoder = Geocoder(self.bigquery)
         self.session = session 
 
     async def extract_tickets(
@@ -247,21 +250,18 @@ class Extractor:
 
     async def extract_conversation_analysis(self) -> ExtractionResponse:
         try:
-            # step 1: Query tickets with the use of a filter
-            recent_tickets = foo(self.bigquery, PROJECT_ID, "conversations", limit=1)
-            # step 2: Processing
+            recent_tickets = foo(self.bigquery, PROJECT_ID, "conversations", limit=10)
             ticket_messages_df = await process_chat(recent_tickets)
-            logging.info(ticket_messages_df)
-                # step 2.1: chat analysis
-                    # step 2.1.1: process_chat
-                    # step 2.1.2: geolocation
-                # step 2.2: merging to BQ
-
-            return ticket_messages_df.to_dict(orient="records")
+            geolocation = process_address(ticket_messages_df, self.geocoder)
+            ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
+            ticket_messages_df = tag_viable(ticket_messages_df)
+            logging.info("Generating schema and loading data to BigQuery...")
+            schema = prepare_and_load_to_bq(self.bigquery, ticket_messages_df, "convo_analysis", load_data=False)
+            upsert_to_bq_with_staging(self.bigquery, ticket_messages_df, schema, "convo_analysis")
+            logging.info("Done loading to BigQuery!")
+            return ticket_messages_df.fillna(value=0).to_dict(orient="records")
         except Exception as e:
-            import traceback
             logging.info(f"Exception occurred while extracting conversation analysis: {e}")
-            traceback.print_exc()
             return ExtractionResponse(
                 count="0",
                 data=[],
