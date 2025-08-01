@@ -8,11 +8,6 @@ import numpy as np
 import requests
 import logging
 
-"""
-Git commit message:
-refactor: Convert geocoding logic into Geocoder class
-"""
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"

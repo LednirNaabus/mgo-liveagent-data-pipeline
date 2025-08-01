@@ -1,6 +1,7 @@
 from api import (
     conversation_router,
     ticket_router,
+    tables_router,
     agent_router,
     tag_router
 )
@@ -35,6 +36,7 @@ app.include_router(ticket_router, prefix="/extract", tags=["ticket"])
 app.include_router(agent_router, prefix="/extract", tags=["agents"])
 app.include_router(tag_router, prefix="/extract", tags=["tags"])
 app.include_router(conversation_router, prefix="/extract", tags=["convo-analysis"])
+app.include_router(tables_router, prefix="/fetch", tags=["bigquery-tables"])
 
 
 @app.get("/")
