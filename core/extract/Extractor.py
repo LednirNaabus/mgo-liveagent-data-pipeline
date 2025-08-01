@@ -1,4 +1,4 @@
-from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, foo, process_chat, process_address
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, recent_tickets, process_chat, process_address
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from config.constants import PROJECT_ID, DATASET_NAME
@@ -250,7 +250,7 @@ class Extractor:
 
     async def extract_conversation_analysis(self) -> ExtractionResponse:
         try:
-            recent_tickets = foo(self.bigquery, PROJECT_ID, "conversations", limit=10)
+            recent_tickets = recent_tickets(self.bigquery, PROJECT_ID, "conversations", limit=10)
             ticket_messages_df = await process_chat(recent_tickets)
             geolocation = process_address(ticket_messages_df, self.geocoder)
             ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)

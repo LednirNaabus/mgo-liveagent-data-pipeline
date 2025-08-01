@@ -78,7 +78,7 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
     )
     return agents_df
 
-def foo(bq_client: BigQuery, project_id: str, dataset_name: str, limit: int = 5) -> Tuple:
+def recent_tickets(bq_client: BigQuery, project_id: str, dataset_name: str, limit: int = 5) -> Tuple:
     now = pd.Timestamp.now(tz="UTC").astimezone(MNL_TZ)
     date = now - pd.Timedelta(hours=6)
     start = date.floor('h')
