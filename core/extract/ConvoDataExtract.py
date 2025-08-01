@@ -102,14 +102,14 @@ class ConvoDataExtract:
             output = {
                 "data": {
                     "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
-                    "service_category": None,
+                    "car": None,
+                    "location": None,
+                    "summary": None,
+                    "intent_rating": None,
+                    "engagement_rating": None,
+                    "clarity_rating": None,
+                    "resolution_rating": None,
+                    "sentiment_rating": None
                 },
                 "tokens": self._count_tokens(self.prompt)
             }
@@ -121,7 +121,7 @@ class ConvoDataExtract:
         query = """
         SELECT sender_type, message
         FROM `mechanigo-liveagent.conversations.messages`
-        WHERE ticket_id = '{}'
+        WHERE ticket_id = '{}' AND message_format = 'T'
         ORDER BY datecreated
         """.format(ticket_id)
         df_messages = self.bq_client.sql_query_bq(query)
