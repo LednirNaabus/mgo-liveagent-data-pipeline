@@ -173,7 +173,7 @@ class Ticket:
                             "message_type": msg.get("type"),
                             "message_datecreated": msg.get("datecreated"),
                             "message_format": msg.get("format"),
-                            "message_content": msg.get("message"),
+                            "message": msg.get("message"),
                             "message_visibility": msg.get("visibility")
                         }
                         flattened_messages.append(flattened_message)
