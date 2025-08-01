@@ -1,4 +1,5 @@
 from api import (
+    conversation_router,
     ticket_router,
     agent_router,
     tag_router
@@ -33,6 +34,7 @@ app = FastAPI(
 app.include_router(ticket_router, prefix="/extract", tags=["ticket"])
 app.include_router(agent_router, prefix="/extract", tags=["agents"])
 app.include_router(tag_router, prefix="/extract", tags=["tags"])
+app.include_router(conversation_router, prefix="/extract", tags=["convo-analysis"])
 
 
 @app.get("/")
