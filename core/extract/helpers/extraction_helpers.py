@@ -78,7 +78,35 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
     )
     return agents_df
 
-def recent_tickets(bq_client: BigQuery, project_id: str, dataset_name: str, limit: int = 5) -> Tuple:
+# def recent_tickets(bq_client: BigQuery, project_id: str, dataset_name: str, table_name: str, limit: int = 5) -> Tuple:
+#     now = pd.Timestamp.now(tz="UTC").astimezone(MNL_TZ)
+#     date = now - pd.Timedelta(hours=6)
+#     start = date.floor('h')
+#     end = start + pd.Timedelta(hours=6) - pd.Timedelta(seconds=1)
+#     start_str = start.strftime("%Y-%m-%d %H:%M:%S")
+#     end_str = end.strftime("%Y-%m-%d %H:%M:%S")
+
+#     query = f"""
+#     SELECT
+#     DISTINCT ticket_id
+#     FROM {project_id}.{dataset_name}.{table_name}
+#     WHERE message_format = 'T'
+#         AND datecreated BETWEEN '{start_str}' AND '{end_str}'
+#     """
+
+#     logging.info(query)
+
+#     if limit is not None:
+#         query += f"\nLIMIT {limit}"
+#     return bq_client.sql_query_bq(query, return_data=True)
+def recent_tickets(
+    bq_client: BigQuery,
+    project_id: str,
+    dataset_name: str,
+    table_name: str,
+    date_filter: str = "datecreated",
+    limit: int = 10
+) -> pd.DataFrame:
     now = pd.Timestamp.now(tz="UTC").astimezone(MNL_TZ)
     date = now - pd.Timedelta(hours=6)
     start = date.floor('h')
@@ -86,13 +114,31 @@ def recent_tickets(bq_client: BigQuery, project_id: str, dataset_name: str, limi
     start_str = start.strftime("%Y-%m-%d %H:%M:%S")
     end_str = end.strftime("%Y-%m-%d %H:%M:%S")
 
+    if table_name == "tickets":
+        select_clause = "id, owner_name, agentid"
+        where_conditions = []
+    elif table_name == "messages":
+        select_clause = "DISTINCT ticket_id"
+        where_conditions = ["message_format = 'T'"]
+    else:
+        raise ValueError(f"The table_name '{table_name}' not found.")
+
+    where_clauses = [
+        f"{date_filter} >= '{start_str}'",
+        f"{date_filter} < '{end_str}'"
+    ]
+
+    where_clauses.extend(where_conditions)
+
+    where_clause = " AND ".join(where_clauses)
+
     query = f"""
-    SELECT
-    DISTINCT ticket_id
-    FROM {project_id}.{dataset_name}.messages
-    WHERE message_format = 'T'
-        AND datecreated BETWEEN '{start_str}' AND '{end_str}'
+    SELECT {select_clause}
+    FROM {project_id}.{dataset_name}.{table_name}
+    WHERE {where_clause}
     """
+
+    logging.info(f"query: {query}")
 
     if limit is not None:
         query += f"\nLIMIT {limit}"

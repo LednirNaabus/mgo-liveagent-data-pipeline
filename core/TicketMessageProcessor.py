@@ -74,7 +74,7 @@ class TicketMessageProcessor:
             logging.info("All user IDs are agents, no additional user data needed.")
             return {}
         logging.info(f"Fetching user data for {len(non_agent_user_ids)} non-agent user IDs.")
-        semaphore = asyncio.Semaphore(10) # modify later
+        semaphore = asyncio.Semaphore(3) # modify later
         async def fetch_single_user(user_id: str):
             async with semaphore:
                 user_data = await self.user.get_user(
@@ -101,6 +101,7 @@ class TicketMessageProcessor:
                     continue
 
                 for user_info in user_data.data:
+                    logging.info(f"user_info: {user_info}")
                     name = user_info.get("name", "") or f"{user_info.get("name")}"
                     if not name:
                         name = user_info.get("email", "Unknown Name")

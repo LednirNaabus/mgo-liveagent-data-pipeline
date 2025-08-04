@@ -111,16 +111,32 @@ class Extractor:
         concurrent_limit: int = 10
     ):
         tickets = await self.extract_tickets(date, filter_field)
-        tickets_df = pd.DataFrame(tickets.data)
-        if isinstance(tickets_df, pd.DataFrame):
-            ticket_ids = tickets_df["id"].tolist()
-            ticket_agentids = tickets_df["agentid"].tolist()
-            ticket_ownernames = tickets_df["owner_name"].tolist()
-        else:
-            ticket_ids = [ticket.get("id") for ticket in tickets_df.data if ticket.get("id")]
-            ticket_agentids = [ticket.get("agentid") for ticket in tickets_df.data if ticket.get("agentid")]
-            ticket_ownernames = [ticket.get("owner_name") for ticket in tickets_df.data if ticket.get("owner_name")]
+        # tickets_df = pd.DataFrame(tickets.data)
+        # if isinstance(tickets_df, pd.DataFrame):
+        #     ticket_ids = tickets_df["id"].tolist()
+        #     ticket_agentids = tickets_df["agentid"].tolist()
+        #     ticket_ownernames = tickets_df["owner_name"].tolist()
+        # else:
+        #     ticket_ids = [ticket.get("id") for ticket in tickets_df.data if ticket.get("id")]
+        #     ticket_agentids = [ticket.get("agentid") for ticket in tickets_df.data if ticket.get("agentid")]
+        #     ticket_ownernames = [ticket.get("owner_name") for ticket in tickets_df.data if ticket.get("owner_name")]
 
+        # do some sql here
+        tickets_batch = recent_tickets(
+            bq_client=self.bigquery,
+            project_id=PROJECT_ID,
+            dataset_name=DATASET_NAME,
+            table_name="tickets",
+            date_filter="date_changed",
+            limit=None
+        )
+        logging.info(f"tickets_batch: {tickets_batch}")
+        if isinstance(tickets_batch, pd.DataFrame):
+            ticket_ids = tickets_batch["id"].tolist()
+            ticket_agentids = tickets_batch["agentid"].tolist()
+            ticket_ownernames = tickets_batch["owner_name"].tolist()
+        else:
+            raise ValueError("Expected to be DataFrame. Unable to fetch ticket messages.")
         logging.info(f"Found {len(ticket_ids)} tickets")
 
         if not ticket_ids:
@@ -157,7 +173,7 @@ class Extractor:
         logging.info("Generating schema and loading data to BigQuery...")
         logging.info("Loading messages...")
         prepare_and_load_to_bq(self.bigquery, messages_processed, "messages", load_data=True)
-        logging.info("Loading messages...")
+        logging.info("Loading users...")
         schema = prepare_and_load_to_bq(self.bigquery, users_df, "users", load_data=False)
         upsert_to_bq_with_staging(self.bigquery, users_df, schema, "users")
         logging.info("Done loading to BigQuery!")
@@ -250,8 +266,15 @@ class Extractor:
 
     async def extract_conversation_analysis(self) -> ExtractionResponse:
         try:
-            recent_tickets = recent_tickets(self.bigquery, PROJECT_ID, "conversations", limit=10)
-            ticket_messages_df = await process_chat(recent_tickets)
+            # chats = recent_tickets(self.bigquery, PROJECT_ID, "conversations", "messages", limit=10)
+            chats = recent_tickets(
+                self.bigquery,
+                PROJECT_ID,
+                DATASET_NAME,
+                "messages",
+                limit=None
+            )
+            ticket_messages_df = await process_chat(chats)
             geolocation = process_address(ticket_messages_df, self.geocoder)
             ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
             ticket_messages_df = tag_viable(ticket_messages_df)

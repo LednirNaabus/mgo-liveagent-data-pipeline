@@ -31,7 +31,8 @@ async def process_tickets_and_messages(
     response = await extractor.extract_tickets_and_messages(
         date=date,
         filter_field=filter_field,
-        session=session
+        session=session,
+        concurrent_limit=3
     )
 
     res_data = {

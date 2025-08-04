@@ -14,7 +14,7 @@ logging.basicConfig(
 
 class LiveAgentClient:
     """Live Agent base client/class."""
-    def __init__(self, api_key: str, session: aiohttp.ClientSession, max_concurrent_requests: int = 10):
+    def __init__(self, api_key: str, session: aiohttp.ClientSession, max_concurrent_requests: int = 3):
         if not api_key:
             raise ValueError("API key cannot be empty.")
 
