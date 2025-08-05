@@ -204,51 +204,51 @@ class TicketMessageProcessor:
 
         return "Unknown Name"
 
-    def _get_sender(self, message_data: Dict) -> Tuple[str, str]:
-        message_userid = message_data.get("message_userid") or message_data.get("userid")
-        ticket_agentid = message_data.get("agentid")
-        owner_name = message_data.get("owner_name", "")
-
-        sender_info = self.agent_cache.get(message_userid) or self.user_cache.get(message_userid)
-
-        sender_name = owner_name # override
-        if sender_info:
-            if sender_info["id"] == LIVEAGENT_MGO_SYSTEM_USER_ID:
-                return "System", "system"
-            elif sender_info["id"] == LIVEAGENT_MGO_SPECIAL_USER_ID: # 0054iwg - special user ID for MechaniGo.ph system
-                return "MechaniGo.ph", "system"
-            else:
-                return sender_name, sender_info.get("role", "Unknown")
-        else:
-            if message_userid == ticket_agentid:
-                return sender_name, "agent"
-            else:
-                return sender_name, "client"
-
-    def _get_receiver(self, sender_type: str, message_data: Dict) -> Tuple[str, str]:
+    def _determine_sender_receiver(self, message_data: Dict) -> Dict[str, str]:
+        message_userid = message_data.get("userid")
         ticket_agentid = message_data.get("agentid")
         owner_name = message_data.get("owner_name", "Unknown User")
 
-        if sender_type == "agent":
-            return owner_name, "client"
+        if message_userid == LIVEAGENT_MGO_SYSTEM_USER_ID:
+            return {
+                "sender_name": "System",
+                "sender_type": "system",
+                "receiver_name": owner_name,
+                "receiver_type": "client"
+            }
+        
+        if message_userid == LIVEAGENT_MGO_SYSTEM_USER_ID:
+            return {
+                "sender_name": "MechaniGo.ph",
+                "sender_type": "system",
+                "receiver_name": owner_name,
+                "receiver_type": "client"
+            }
+
+        if message_userid in self.agent_cache:
+            agent_name = self.agent_cache[message_userid].get("name", "Unknown Agent")
+            return {
+                "sender_name": agent_name,
+                "sender_type": "agent",
+                "receiver_name": owner_name,
+                "receiver_type": "client"
+            }
         else:
             agent_info = self.agent_cache.get(ticket_agentid)
             if agent_info:
                 if agent_info["id"] == LIVEAGENT_MGO_SPECIAL_USER_ID:
-                    return "MechaniGo.ph", "system"
-                return agent_info.get("name", "Unknown Agent"), "agent"
+                    agent_name = "MechaniGo.ph"
+                else:
+                    agent_name = agent_info.get("name", "Unknown Agent")
             else:
-                return "Unknown Agent", "agent"
-    
-    def _determine_sender_receiver(self, message_data: Dict) -> Dict[str, str]:
-        sender_name, sender_type = self._get_sender(message_data)
-        receiver_name, receiver_type = self._get_receiver(sender_type, message_data)
+                agent_name = "Unknown Agent"
+
 
         return {
-            "sender_name": sender_name,
-            "sender_type": sender_type,
-            "receiver_name": receiver_name,
-            "receiver_type": receiver_type
+            "sender_name": owner_name,
+            "sender_type": "client",
+            "receiver_name": agent_name,
+            "receiver_type": "agent"
         }
 
     async def process_messages_with_metadata(
