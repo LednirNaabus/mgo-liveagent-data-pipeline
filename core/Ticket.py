@@ -55,17 +55,20 @@ class Ticket:
         )
 
         for ticket in data:
+            ticket['ticket_id'] = ticket.get('id', None)
+            ticket['owner_name'] = ticket.get('owner_name', None)
+            ticket['agentid'] = ticket.get('agentid', None)
             ticket['tags'] = ','.join(ticket['tags']) if ticket.get('tags') else ''
             ticket['date_due'] = ticket.get('date_due')
             ticket['date_deleted'] = ticket.get('date_deleted')
             ticket['date_resolved'] = ticket.get('date_resolved')
 
-            ticket_id = ticket.get("id")
+            ticket_id = ticket.get("id", None)
             if ticket_id:
                 self.ticket_metadata_cache[ticket_id] = {
                     "ticket_id": ticket_id,
-                    "owner_name": ticket.get("owner_name", ""),
-                    "agentid": ticket.get("agentid", "")
+                    "owner_name": ticket.get("owner_name", None),
+                    "agentid": ticket.get("agentid", None)
                 }
 
         return pd.DataFrame(data)
@@ -147,8 +150,8 @@ class Ticket:
             for message in result:
                 base_info = {
                     "ticket_id": ticket_ids[i],
-                    "owner_name": ticket_owner_names[i] if ticket_agentids else None,
-                    "agentid": ticket_agentids[i] if ticket_agentids else None,
+                    "owner_name": ticket_owner_names[i] if ticket_owner_names and ticket_owner_names[i] is not None else None,
+                    "agentid": ticket_agentids[i] if ticket_agentids and ticket_agentids[i] is not None else None,
                     "agent_name": "",
                     "message_group_id": message.get("id"),
                     "parent_id": message.get("parent_id"),

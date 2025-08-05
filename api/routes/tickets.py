@@ -1,15 +1,13 @@
 from api.routes.helpers.tickets_route_helpers import resolve_extraction_date
 from utils.session_utils import get_aiohttp_session
 from core.factory import create_extractor
+from config.constants import MAX_VALUE
 from typing import Optional
 from api.common import (
     APIRouter,
     Request,
     Query
 )
-
-# Delete Later
-from config.constants import TEST_MAX_PAGE, TEST_PER_PAGE
 
 router = APIRouter()
 
@@ -23,8 +21,8 @@ async def process_tickets_and_messages(
     session = get_aiohttp_session(request)
     date, filter_field = resolve_extraction_date(is_initial, date)
     extractor = create_extractor(
-        max_page=TEST_MAX_PAGE,
-        per_page=TEST_PER_PAGE,
+        max_page=MAX_VALUE,
+        per_page=MAX_VALUE,
         session=session
     )
 
@@ -32,7 +30,7 @@ async def process_tickets_and_messages(
         date=date,
         filter_field=filter_field,
         session=session,
-        concurrent_limit=3
+        concurrent_limit=15
     )
 
     res_data = {

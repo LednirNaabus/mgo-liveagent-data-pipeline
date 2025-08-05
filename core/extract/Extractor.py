@@ -111,23 +111,12 @@ class Extractor:
         concurrent_limit: int = 10
     ):
         tickets = await self.extract_tickets(date, filter_field)
-        # tickets_df = pd.DataFrame(tickets.data)
-        # if isinstance(tickets_df, pd.DataFrame):
-        #     ticket_ids = tickets_df["id"].tolist()
-        #     ticket_agentids = tickets_df["agentid"].tolist()
-        #     ticket_ownernames = tickets_df["owner_name"].tolist()
-        # else:
-        #     ticket_ids = [ticket.get("id") for ticket in tickets_df.data if ticket.get("id")]
-        #     ticket_agentids = [ticket.get("agentid") for ticket in tickets_df.data if ticket.get("agentid")]
-        #     ticket_ownernames = [ticket.get("owner_name") for ticket in tickets_df.data if ticket.get("owner_name")]
-
-        # do some sql here
         tickets_batch = recent_tickets(
             bq_client=self.bigquery,
             project_id=PROJECT_ID,
             dataset_name=DATASET_NAME,
             table_name="tickets",
-            date_filter="date_changed",
+            date_filter="date_created",
             limit=None
         )
         logging.info(f"tickets_batch: {tickets_batch}")
@@ -169,6 +158,8 @@ class Extractor:
         user_data = self.ticket.get_user_cache()
         user_list = list(user_data.values())
         users_df = pd.DataFrame(user_list)
+
+        logging.info(f"users_df: {users_df}")
 
         logging.info("Generating schema and loading data to BigQuery...")
         logging.info("Loading messages...")

@@ -1,5 +1,5 @@
+from config.constants import BASE_URL, THROTTLE_DELAY, MAX_CONCURRENT_REQUESTS
 from api.schemas.response import LiveAgentAPIResponse, ResponseStatus
-from config.constants import BASE_URL, THROTTLE_DELAY
 from typing import Dict, List, Optional, Any
 import asyncio
 import aiohttp
@@ -14,7 +14,7 @@ logging.basicConfig(
 
 class LiveAgentClient:
     """Live Agent base client/class."""
-    def __init__(self, api_key: str, session: aiohttp.ClientSession, max_concurrent_requests: int = 3):
+    def __init__(self, api_key: str, session: aiohttp.ClientSession, max_concurrent_requests: int = MAX_CONCURRENT_REQUESTS):
         if not api_key:
             raise ValueError("API key cannot be empty.")
 
