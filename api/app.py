@@ -32,7 +32,13 @@ app = FastAPI(
     title="MechaniGo LiveAgent Data Pipeline",
     version=APP_VERSION
 )
-app.include_router(ticket_router, prefix="/extract", tags=["ticket"])
+
+# Order of cloud run
+# agents
+# tags
+# tickets
+# convo-analysis
+app.include_router(ticket_router, prefix="/extract", tags=["tickets-and-messages"])
 app.include_router(agent_router, prefix="/extract", tags=["agents"])
 app.include_router(tag_router, prefix="/extract", tags=["tags"])
 app.include_router(conversation_router, prefix="/extract", tags=["convo-analysis"])
