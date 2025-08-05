@@ -139,7 +139,7 @@ async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: as
 
 async def process_chat(ticket_ids: pd.Series):
     date_extracted = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")
-    semaphore = asyncio.Semaphore(10)
+    semaphore = asyncio.Semaphore(15)
     tasks = [
         process_single_chat(ticket_id, date_extracted, semaphore)
         for ticket_id in ticket_ids["ticket_id"]

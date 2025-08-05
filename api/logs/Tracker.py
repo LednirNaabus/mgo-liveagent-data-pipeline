@@ -35,18 +35,23 @@ class RuntimeTracker:
             return
         
         route_exec = next((r for r in self._runtime.routes_execution if r.route == route_path), None)
-        if route_exec and route_exec.start_time:
-            route_exec.end_time = datetime.now(MNL_TZ)
-            route_exec.duration_seconds = (route_exec.end_time - route_exec.start_time).total_seconds()
-            route_exec.status = RouteStatus.COMPLETED
-            logging.info(f"Completed execution of {route_path} in {route_exec.duration_seconds:.2f} seconds")
+        if route_exec:
+            if route_exec.start_time:
+                route_exec.end_time = datetime.now(MNL_TZ)
+                route_exec.duration_seconds = (route_exec.end_time - route_exec.start_time).total_seconds()
+                route_exec.status = RouteStatus.COMPLETED
+                logging.info(f"Completed execution of {route_path} in {route_exec.duration_seconds:.2f} seconds")
 
-            if route_path == "/extract/convo-analysis":
-                self._runtime.app_end_time = datetime.now(MNL_TZ)
-                self._runtime.total_duration_seconds = (
-                    self._runtime.app_end_time - self._runtime.app_start_time
-                ).total_seconds()
-                logging.info(f"App execution completed. Total runtime: {self._runtime.total_duration_seconds:.2f} seconds")
+                if route_path == "/extract/convo-analysis":
+                    self._runtime.app_end_time = datetime.now(MNL_TZ)
+                    self._runtime.total_duration_seconds = (
+                        self._runtime.app_end_time - self._runtime.app_start_time
+                    ).total_seconds()
+                    logging.info(f"App execution completed. Total runtime: {self._runtime.total_duration_seconds:.2f} seconds")
+            else:
+                logging.warning(f"Route {route_path} was not properly started!")
+        else:
+            logging.warning(f"Route {route_path} not found in tracked routes")
 
     def fail_route(self, route_path: str, error: Exception):
         if not self._runtime:

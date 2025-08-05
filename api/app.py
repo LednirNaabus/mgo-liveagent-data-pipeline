@@ -23,6 +23,7 @@ logging.basicConfig(
 # Shared session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.info("Initializing runtime tracker...")
     runtime_tracker.initialize()
     logging.info("Creating aiohttp session...")
     logging.info("Starting app...")
@@ -38,6 +39,9 @@ app = FastAPI(
     version=APP_VERSION
 )
 
+logging.info("Adding runtime middleware...")
+app.add_middleware(RuntimeMiddleware)
+
 # Order of cloud run
 # agents
 # tags
@@ -47,11 +51,25 @@ app.include_router(ticket_router, prefix="/extract", tags=["tickets-and-messages
 app.include_router(agent_router, prefix="/extract", tags=["agents"])
 app.include_router(tag_router, prefix="/extract", tags=["tags"])
 app.include_router(conversation_router, prefix="/extract", tags=["convo-analysis"])
-app.include_router(monitoring_router, prefix="/monitoring", tags=["monitoring"])
+app.include_router(monitoring_router, tags=["monitoring"])
 app.include_router(tables_router, prefix="/fetch", tags=["bigquery-tables"])
-
-app.middleware("http")(RuntimeMiddleware(app))
 
 @app.get("/")
 def root():
     return "Hello, World!"
+
+@app.get("/test-middleware")
+async def test_middleware():
+    return {"message": "Middleware test route"}
+
+@app.get("/debug/routes")
+async def debug_routes():
+    routes_info = []
+    for route in app.routes:
+        if hasattr(route, "path") and hasattr(route, "methods"):
+            routes_info.append({
+                "path": route.path,
+                "methods": list(route.methods) if route.methods else [],
+                "name": getattr(route, "name", "unnamed")
+            })
+    return {"routes": routes_info}

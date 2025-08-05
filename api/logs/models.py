@@ -30,8 +30,8 @@ class AppRuntime:
     def __post_init__(self):
         if self.routes_execution is None:
             self.routes_execution = [
-                RouteExecution("/extract/agents", RouteStatus.NOT_STARTED),
-                RouteExecution("/extract/tags", RouteStatus.NOT_STARTED),
-                RouteExecution("/extract/ticket", RouteStatus.NOT_STARTED),
-                RouteExecution("/extract/convo-analysis", RouteStatus.NOT_STARTED),
+                RouteExecution("/extract/process-agents", RouteStatus.NOT_STARTED),
+                RouteExecution("/extract/process-tags", RouteStatus.NOT_STARTED),
+                RouteExecution("/extract/process-tickets-and-messages", RouteStatus.NOT_STARTED),
+                RouteExecution("/extract/process-convo", RouteStatus.NOT_STARTED),
             ]

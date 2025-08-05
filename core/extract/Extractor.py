@@ -257,12 +257,12 @@ class Extractor:
 
     async def extract_conversation_analysis(self) -> ExtractionResponse:
         try:
-            # chats = recent_tickets(self.bigquery, PROJECT_ID, "conversations", "messages", limit=10)
             chats = recent_tickets(
-                self.bigquery,
-                PROJECT_ID,
-                DATASET_NAME,
-                "messages",
+                bq_client=self.bigquery,
+                project_id=PROJECT_ID,
+                dataset_name=DATASET_NAME,
+                table_name="messages",
+                date_filter="datecreated",
                 limit=None
             )
             ticket_messages_df = await process_chat(chats)
