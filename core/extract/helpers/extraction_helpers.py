@@ -78,27 +78,6 @@ def process_agents(agents: ExtractionResponse) -> pd.DataFrame:
     )
     return agents_df
 
-# def recent_tickets(bq_client: BigQuery, project_id: str, dataset_name: str, table_name: str, limit: int = 5) -> Tuple:
-#     now = pd.Timestamp.now(tz="UTC").astimezone(MNL_TZ)
-#     date = now - pd.Timedelta(hours=6)
-#     start = date.floor('h')
-#     end = start + pd.Timedelta(hours=6) - pd.Timedelta(seconds=1)
-#     start_str = start.strftime("%Y-%m-%d %H:%M:%S")
-#     end_str = end.strftime("%Y-%m-%d %H:%M:%S")
-
-#     query = f"""
-#     SELECT
-#     DISTINCT ticket_id
-#     FROM {project_id}.{dataset_name}.{table_name}
-#     WHERE message_format = 'T'
-#         AND datecreated BETWEEN '{start_str}' AND '{end_str}'
-#     """
-
-#     logging.info(query)
-
-#     if limit is not None:
-#         query += f"\nLIMIT {limit}"
-#     return bq_client.sql_query_bq(query, return_data=True)
 def recent_tickets(
     bq_client: BigQuery,
     project_id: str,
@@ -113,16 +92,6 @@ def recent_tickets(
     end = start + pd.Timedelta(hours=6) - pd.Timedelta(seconds=1)
     start_str = start.strftime("%Y-%m-%d %H:%M:%S")
     end_str = end.strftime("%Y-%m-%d %H:%M:%S")
-
-    # if table_name == "tickets":
-    #     start = now.floor('h')
-    #     end = start + pd.Timedelta(hours=1) - pd.Timedelta(seconds=1)
-    # else:
-    #     date = now - pd.Timedelta(hours=6)
-    #     start = date.floor('h')
-    #     end = start + pd.Timedelta(hours=6) - pd.Timedelta(seconds=1)
-        # select_clause = "id, owner_name, agentid"
-        # where_conditions = []
 
     if table_name == "tickets":
         select_clause = "id, owner_name, agentid"
