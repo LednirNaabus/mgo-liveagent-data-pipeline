@@ -36,3 +36,15 @@ localhost:8080/docs
 For branch `refactor-v1-add-174`
 
 - [x] Fix date filter in tickets and ticket messages
+
+For branch `refactor-v1-logs`
+
+- [ ] Implement logs
+
+    - [ ] Capture new and existing ticket and ticket messages per run
+
+    - [ ] Capture error logs per route
+
+    - [ ] Total tokens used
+
+    - [ ] Model used
