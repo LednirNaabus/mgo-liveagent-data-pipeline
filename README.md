@@ -35,4 +35,4 @@ localhost:8080/docs
 ### TODO:
 For branch `refactor-v1-add-174`
 
-- [ ] Fix date filter in tickets and ticket messages
+- [x] Fix date filter in tickets and ticket messages
