@@ -11,6 +11,10 @@ from fastapi import FastAPI
 import aiohttp
 import logging
 
+from api.logs.routes import router as monitoring_router
+from api.logs.middleware import RuntimeMiddleware
+from api.logs.Tracker import runtime_tracker
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -19,6 +23,7 @@ logging.basicConfig(
 # Shared session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    runtime_tracker.initialize()
     logging.info("Creating aiohttp session...")
     logging.info("Starting app...")
     app.state.aiohttp_session = aiohttp.ClientSession()
@@ -42,8 +47,10 @@ app.include_router(ticket_router, prefix="/extract", tags=["tickets-and-messages
 app.include_router(agent_router, prefix="/extract", tags=["agents"])
 app.include_router(tag_router, prefix="/extract", tags=["tags"])
 app.include_router(conversation_router, prefix="/extract", tags=["convo-analysis"])
+app.include_router(monitoring_router, prefix="/monitoring", tags=["monitoring"])
 app.include_router(tables_router, prefix="/fetch", tags=["bigquery-tables"])
 
+app.middleware("http")(RuntimeMiddleware(app))
 
 @app.get("/")
 def root():
