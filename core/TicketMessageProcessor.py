@@ -28,11 +28,11 @@ class TicketMessageProcessor:
             if message.get("userid"):
                 user_ids.add(message["userid"])
 
-            # if message.get("message_userid"):
-            #     user_ids.add(message["message_userid"])
+            if message.get("message_userid"):
+                user_ids.add(message["message_userid"])
 
-            # if message.get("agentid"):
-            #     user_ids.add(message["agentid"])
+            if message.get("agentid"):
+                user_ids.add(message["agentid"])
 
         return user_ids
 
