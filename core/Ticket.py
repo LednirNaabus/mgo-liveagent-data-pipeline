@@ -55,7 +55,6 @@ class Ticket:
         )
 
         for ticket in data:
-            ticket['ticket_id'] = ticket.get('id', None)
             ticket['owner_name'] = ticket.get('owner_name', None)
             ticket['agentid'] = ticket.get('agentid', None)
             ticket['tags'] = ','.join(ticket['tags']) if ticket.get('tags') else ''
