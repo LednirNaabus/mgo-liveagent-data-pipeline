@@ -217,7 +217,7 @@ class TicketMessageProcessor:
                 "receiver_type": "client"
             }
         
-        if message_userid == LIVEAGENT_MGO_SYSTEM_USER_ID:
+        if message_userid == LIVEAGENT_MGO_SPECIAL_USER_ID:
             return {
                 "sender_name": "MechaniGo.ph",
                 "sender_type": "system",
