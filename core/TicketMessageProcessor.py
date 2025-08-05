@@ -158,7 +158,7 @@ class TicketMessageProcessor:
                         break
 
             self.user_cache.update(needed_users)
-            logging.info(f"User fetch completed: {successful_fetches} successful", f"{failed_fetches} failed out of {len(non_agent_user_ids)} total requests.")
+            logging.info(f"User fetch completed: {successful_fetches} successful, {failed_fetches} failed out of {len(non_agent_user_ids)} total requests.")
             return needed_users
         except Exception as e:
             import traceback
