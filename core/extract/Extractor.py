@@ -20,9 +20,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# TODO:
-# 1. (maybe) Move "fetch from BQ" query logic to a separate helper module
-
 # FLOW:
 # 1. Call from LiveAgentAPI/{tickets,users,agents}
 # 2. Perform any parsing

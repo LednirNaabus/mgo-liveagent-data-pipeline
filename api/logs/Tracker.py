@@ -1,5 +1,5 @@
 from .models import AppRuntime, RouteStatus
-from datetime import datetime, timezone
+from datetime import datetime
 from config.config import MNL_TZ
 from typing import Optional
 import logging
