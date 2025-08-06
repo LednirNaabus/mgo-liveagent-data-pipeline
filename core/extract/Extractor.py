@@ -7,6 +7,7 @@ from core.LiveAgentClient import LiveAgentClient
 from utils.geocode_utils import tag_viable
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
+from utils.df_utils import drop_cols
 from core.Geocode import Geocoder
 from core.Ticket import Ticket
 from core.Agent import Agent
@@ -258,19 +259,20 @@ class Extractor:
                 dataset_name=DATASET_NAME,
                 table_name="messages",
                 date_filter="datecreated",
-                limit=None
+                limit=1
             )
             ticket_messages_df = await process_chat(chats)
             geolocation = process_address(ticket_messages_df, self.geocoder)
             ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
             ticket_messages_df = tag_viable(ticket_messages_df)
+            ticket_messages_df = drop_cols(ticket_messages_df, "score", "input_address", "lat", "lng", "error")
             logging.info("Generating schema and loading data to BigQuery...")
             schema = prepare_and_load_to_bq(self.bigquery, ticket_messages_df, "convo_analysis", load_data=False)
             upsert_to_bq_with_staging(self.bigquery, ticket_messages_df, schema, "convo_analysis")
             logging.info("Done loading to BigQuery!")
             return ticket_messages_df.fillna(value=0).to_dict(orient="records")
         except Exception as e:
-            logging.info(f"Exception occurred while extracting conversation analysis: {e}")
+            logging.error(f"Exception occurred while extracting conversation analysis: {e}")
             return ExtractionResponse(
                 count="0",
                 data=[],

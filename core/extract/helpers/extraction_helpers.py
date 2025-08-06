@@ -6,7 +6,6 @@ from utils.date_utils import set_timezone
 from config.config import OPENAI_API_KEY
 from core.Geocode import Geocoder
 from config.config import MNL_TZ
-from typing import Tuple
 import pandas as pd
 import logging
 import asyncio
@@ -123,7 +122,7 @@ def recent_tickets(
 
 async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: asyncio.Semaphore) -> pd.DataFrame:
     async with semaphore:
-        print(f"Ticket ID: {ticket_id}")
+        logging.info(f"Ticket ID: {ticket_id}")
         processor = await ConvoDataExtract.create(ticket_id, api_key=OPENAI_API_KEY)
         tokens = processor.data.get("tokens")
         new_df = pd.DataFrame([processor.data.get("data")])
@@ -137,7 +136,7 @@ async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: as
 
 async def process_chat(ticket_ids: pd.Series):
     date_extracted = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")
-    semaphore = asyncio.Semaphore(15)
+    semaphore = asyncio.Semaphore(10)
     tasks = [
         process_single_chat(ticket_id, date_extracted, semaphore)
         for ticket_id in ticket_ids["ticket_id"]

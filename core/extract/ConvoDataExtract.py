@@ -1,5 +1,6 @@
 from openai import AsyncOpenAI, AuthenticationError, OpenAIError
 from core.schemas.ConvoResponse import ResponseSchema
+from config.constants import PROJECT_ID, DATASET_NAME
 from config.constants import CHATGPT_PROMPT
 from core.BigQueryManager import BigQuery
 from config.config import OPENAI_API_KEY
@@ -120,10 +121,10 @@ class ConvoDataExtract:
         """Get messages from BigQuery messages table and convert them to type string."""
         query = """
         SELECT sender_type, message
-        FROM `mechanigo-liveagent.conversations.messages`
+        FROM `{}.{}.messages`
         WHERE ticket_id = '{}' AND message_format = 'T'
         ORDER BY datecreated
-        """.format(ticket_id)
+        """.format(PROJECT_ID, DATASET_NAME, ticket_id)
         df_messages = self.bq_client.sql_query_bq(query)
         s = [
             f"sender: {m['sender_type']}\nmessage: {m['message']}"
