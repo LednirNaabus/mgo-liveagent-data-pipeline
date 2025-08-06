@@ -116,11 +116,9 @@ def recent_tickets(
     FROM {project_id}.{dataset_name}.{table_name}
     WHERE {where_clause}
     """
-
-    logging.info(f"query: {query}")
-
     if limit is not None:
         query += f"\nLIMIT {limit}"
+    logging.info(f"query: {query}")
     return bq_client.sql_query_bq(query, return_data=True)
 
 async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: asyncio.Semaphore) -> pd.DataFrame:
