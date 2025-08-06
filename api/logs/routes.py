@@ -1,12 +1,14 @@
-from datetime import datetime, timezone
 from .Tracker import runtime_tracker
 from config.config import MNL_TZ
 from .models import RouteStatus
 from dataclasses import asdict
+from datetime import datetime
 from api.common import (
     HTTPException,
     APIRouter
 )
+
+from core.extract.ExtractionLogger import ExtractionLogger
 
 router = APIRouter()
 
@@ -21,6 +23,14 @@ def convert_datetime(obj):
         return obj.value
 
     return obj
+
+@router.post("/process-logs")
+async def process_logs():
+    import pandas as pd
+    extraction_date = pd.Timestamp.now(tz=MNL_TZ)
+    extraction_logger = ExtractionLogger()
+    response = extraction_logger.extract_and_load_to_bq(extraction_date)
+    return response
 
 @router.get("/logs")
 async def get_runtime_logs():

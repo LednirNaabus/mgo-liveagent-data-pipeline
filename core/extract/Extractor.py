@@ -39,13 +39,11 @@ class Extractor:
         api_key: str,
         max_page: int,
         per_page: int,
-        table_name: str,
         session: aiohttp.ClientSession
     ):
         self.api_key = api_key
         self.max_page = max_page
         self.per_page = per_page
-        self.table_name = table_name
         self.client = LiveAgentClient(api_key, session)
         self.ticket = Ticket(self.client)
         self.agent = Agent(self.client)

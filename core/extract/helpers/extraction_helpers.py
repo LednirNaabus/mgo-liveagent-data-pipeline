@@ -165,3 +165,10 @@ def process_tags(tags: ExtractionResponse) -> pd.DataFrame:
     tags_df = pd.DataFrame(tags.data)
     tags_df = fill_nan_values(tags_df)
     return tags_df
+
+def create_base_log_dataframe() -> pd.DataFrame:
+    df = pd.DataFrame({
+        "extraction_date": [pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")]
+    })
+    df["extraction_date"] = pd.to_datetime(df["extraction_date"], errors="coerce")
+    return df

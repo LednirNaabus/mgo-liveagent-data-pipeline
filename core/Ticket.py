@@ -152,7 +152,7 @@ class Ticket:
                     "owner_name": ticket_owner_names[i] if ticket_owner_names and ticket_owner_names[i] is not None else None,
                     "agentid": ticket_agentids[i] if ticket_agentids and ticket_agentids[i] is not None else None,
                     "agent_name": "",
-                    "message_group_id": message.get("id"),
+                    "id": message.get("id"),
                     "parent_id": message.get("parent_id"),
                     "userid": message.get("userid"),
                     "user_full_name": message.get("user_full_name"),
