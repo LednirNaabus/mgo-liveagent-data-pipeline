@@ -41,6 +41,22 @@ For branch `refactor-v1-logs`
 
 - [ ] Implement logs
 
+    **Schema**:
+
+    ```
+    extraction_date, "DATETIME", i.e., 2025-07-08T15:02:33
+    extraction_run_time, "FLOAT" i.e., 127.22, etc.
+    no_tickets_new, "INTEGER"
+    no_tickets_update, "INTEGER"
+    no_tickets_total, "INTEGER" (new+update)
+    no_messages_new, "INTEGER"
+    no_messages_old, "INTEGER"
+    no_messages_total, "INTEGER" (new+old)
+    total_tokens, "INTEGER"
+    model, "STRING"
+    log_message, "STRING"
+    ```
+
     - [ ] Capture new and existing ticket and ticket messages per run
 
     - [ ] Capture error logs per route
