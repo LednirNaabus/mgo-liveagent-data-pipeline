@@ -57,10 +57,10 @@ For branch `refactor-v1-logs`
     log_message, "STRING"
     ```
 
-    - [ ] Capture new and existing ticket and ticket messages per run
+    - [x] Capture new and existing ticket and ticket messages per run
 
     - [ ] Capture error logs per route
 
-    - [ ] Total tokens used
+    - [x] Total tokens used
 
-    - [ ] Model used
+    - [x] Model used
