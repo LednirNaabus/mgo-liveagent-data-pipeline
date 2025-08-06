@@ -57,19 +57,3 @@ app.include_router(tables_router, prefix="/fetch", tags=["bigquery-tables"])
 @app.get("/")
 def root():
     return "Hello, World!"
-
-@app.get("/test-middleware")
-async def test_middleware():
-    return {"message": "Middleware test route"}
-
-@app.get("/debug/routes")
-async def debug_routes():
-    routes_info = []
-    for route in app.routes:
-        if hasattr(route, "path") and hasattr(route, "methods"):
-            routes_info.append({
-                "path": route.path,
-                "methods": list(route.methods) if route.methods else [],
-                "name": getattr(route, "name", "unnamed")
-            })
-    return {"routes": routes_info}
