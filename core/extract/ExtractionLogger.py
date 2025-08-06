@@ -172,5 +172,5 @@ class ExtractionLogger:
                 df["log_message"] = combined_errors
 
         logging.info("Generating schema and loading data to BigQuery...")
-        prepare_and_load_to_bq(self.bigquery, df, "logs_test", load_data=True)
+        prepare_and_load_to_bq(self.bigquery, df, "logs", load_data=True)
         return df.to_dict(orient="records")
