@@ -209,6 +209,14 @@ class TicketMessageProcessor:
         ticket_agentid = message_data.get("agentid")
         owner_name = message_data.get("owner_name", "Unknown User")
 
+        # MechaniGo.ph ID: 00054iwg
+        # - Sends automated messages to clients
+        # - message_format: 'T'
+
+        # System ID: system00
+        # - Sends HTML text to clients
+        # - message_format: 'H'
+
         if message_userid == LIVEAGENT_MGO_SYSTEM_USER_ID:
             return {
                 "sender_name": "System",
