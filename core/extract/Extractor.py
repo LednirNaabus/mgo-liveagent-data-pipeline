@@ -259,7 +259,7 @@ class Extractor:
                 dataset_name=DATASET_NAME,
                 table_name="messages",
                 date_filter="datecreated",
-                limit=1
+                limit=None
             )
             ticket_messages_df = await process_chat(chats)
             geolocation = process_address(ticket_messages_df, self.geocoder)
