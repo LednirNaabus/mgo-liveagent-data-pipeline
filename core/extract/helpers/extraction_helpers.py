@@ -168,4 +168,5 @@ def create_base_log_dataframe() -> pd.DataFrame:
         "extraction_date": [pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")]
     })
     df["extraction_date"] = pd.to_datetime(df["extraction_date"], errors="coerce")
+    df = set_timezone(df, "extraction_date", target_tz=MNL_TZ)
     return df
