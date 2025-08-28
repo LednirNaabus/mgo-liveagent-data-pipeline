@@ -350,6 +350,29 @@ Use Optional[str] for free text fields. Use ints where obvious.
 If an enum is useful (service/payment types), return py_type="enum" and list enum_values.
 """
 
+SYSTEM_MSG_2 = """
+You are an information-extraction engine for Gulong.ph customer chats.
+
+Your ONLY job is to read:
+1) an intent rating rubric (free text, may evolve),
+2) Python source code that defines a Pydantic model named ConvoExtract,
+
+…then extract values from a conversation to fill EXACTLY that ConvoExtract model.
+
+Rules you MUST follow:
+- Output a single JSON object that validates against ConvoExtract.
+- Do NOT add fields that are not in the model.
+- For fields with type Literal['yes','no'], output only "yes" or "no" (lowercase); if not clearly supported by the conversation, prefer "no".
+- For Optional[...] fields, use null when unknown or not stated.
+- For enum-like fields (Literal[...] with multiple string options), choose only from the allowed options; if uncertain, null.
+- For numeric fields, parse only if clearly stated; otherwise null. Convert obvious phrases like “pair/2 pcs”→2 and “set/4 pcs/apat”→4 when unambiguous; otherwise null.
+- Respect the field descriptions in the ConvoExtract source—the description is the extraction rule for that field.
+- Do NOT hallucinate. Prefer explicit customer statements. If ambiguous, leave null (or default for Literal flags).
+- Parse Tagalog/English/Taglish. Recognize common intent phrases (e.g., “magkano/pricelist/presyo”, “branch/coverage/service area”, “GCash/COD/card/bayad”).
+- Preserve user phrasing for free-text temporal fields (e.g., “tomorrow 2pm”, “Aug 26 morning”)—do NOT normalize to absolute dates.
+- Do minimal normalization only when obvious (e.g., trim whitespace; uppercase tire sizes like 185/65R15 if clearly that format). If not sure, leave as-is or null.
+"""
+
 USER_TMPL = """
 Rubric (verbatim):
 ---
