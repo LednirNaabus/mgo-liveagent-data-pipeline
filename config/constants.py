@@ -339,3 +339,34 @@ The intent rating reflects the customer's interest level based on shared details
 - type: str
 - description: The GPT model used for the analysis (default is gpt-4.1-mini)
 """
+
+SYSTEM_MSG_1 = """
+You are a senior schema designer for LLM extraction pipelines.
+Given an intent-rating rubric in plain text, design a Pydantic data class
+that captures all the *extractable* fields necessary for downstream intent scoring.
+Return ONLY JSON (no prose). Keep names snake_case, short, stable.
+Prefer yes/no as Literal['yes','no'] with default "no".
+Use Optional[str] for free text fields. Use ints where obvious.
+If an enum is useful (service/payment types), return py_type="enum" and list enum_values.
+"""
+
+USER_TMPL = """
+Rubric (verbatim):
+---
+{intent_prompt}
+---
+
+Constraints:
+- class_name MUST be "ConvoExtract".
+- Include fields to detect these signals when present in the rubric such as:
+* asking_pricelist, asking_location, asking_payment_process
+* vehicle_type, vehicle_model, tire_size, tire_brand
+* contact_number (string), location, delivery_address
+* quantity (int), service_type, service_schedule
+* order_confirmed (yes/no), payment_type, payment_method, payment_confirmed (yes/no)
+* out_of_coverage_gma (yes/no), unserviceable_vehicle_type (yes/no)
+* summary (string) : 1-3 sentence summary of customer inquiries and intent
+- You may add more fields if the rubric implies them (but keep it lean).
+- Output JSON with keys: class_name, fields[]; each field has:
+name, py_type, description, default (optional), enum_values (optional).
+"""
