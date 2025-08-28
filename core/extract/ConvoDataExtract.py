@@ -2,6 +2,7 @@ from openai import AsyncOpenAI, AuthenticationError, OpenAIError
 from core.schemas.ConvoResponse import ResponseSchema
 from config.constants import PROJECT_ID, DATASET_NAME
 from config.constants import CHATGPT_PROMPT
+from core.OpenAIClient import OpenAIClient
 from core.BigQueryManager import BigQuery
 from config.config import OPENAI_API_KEY
 from datetime import datetime
@@ -23,7 +24,7 @@ class ConvoDataExtract:
         api_key: str = None,
         temperature: float = 0.8
     ):
-        self.openai_client = None
+        self.openai_client: AsyncOpenAI | None = None
         self.model = 'gpt-4.1-mini'
         self.temperature = temperature
         self.bq_client = BigQuery()
@@ -36,7 +37,9 @@ class ConvoDataExtract:
     @classmethod
     async def create(cls, ticket_id: str = None, api_key: str = None, temperature: float = 0.8):
         self = cls(ticket_id=ticket_id, api_key=api_key, temperature=temperature)
-        self.openai_client = await self.create_openai_client(api_key)
+        openai_wrapper = OpenAIClient(api_key=api_key)
+        self.openai_client = await openai_wrapper.init_async_client()
+
         if ticket_id:
             today = datetime.today().strftime("%Y-%m-%d")
             self.conversation_text = self.get_convo_str(ticket_id)
