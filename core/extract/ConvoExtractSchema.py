@@ -18,12 +18,15 @@ class ConvoExtractSchema:
     def __init__(
         self,
         intent_prompt: str,
+        api_key: str = None,
         model: Optional[str] = "gpt-4o-mini",
         client: OpenAIClient = None
     ):
         self.intent_prompt = intent_prompt
+        self.api_key = api_key
         self.model = model if model is not None else "gpt-4.1-mini"
-        self.openai_client = OpenAIClient().client if client is None else client
+        # self.openai_client = OpenAIClient(api_key).client if client is None else client
+        self.openai_client = OpenAIClient(api_key) if client is None else client
         self.system_msg = SYSTEM_MSG_1
         self.user_tmpl = USER_TMPL.format(intent_prompt=self.intent_prompt)
 
@@ -32,10 +35,14 @@ class ConvoExtractSchema:
             raise ValueError("Intent rubric must be provided and non-empty.")
         return self.system_msg, self.user_tmpl
 
-    def ask_openai_for_spec(self):
+    async def ask_openai_for_spec(self):
         """Parse rubric into a SchemaSpec using the OpenAI responses API."""
+        print("==========user_tmpl=============")
+        print(self.user_tmpl)
         prompt = dedent(self.user_tmpl).format(rubric=self.intent_prompt).strip()
-        resp = self.openai_client.client.responses.parse(
+        print("==========prompt=============")
+        print(prompt)
+        resp = await self.openai_client.responses.parse(
             model=self.model,
             input=[
                 {"role": "system", "content": self.system_msg},
@@ -88,9 +95,12 @@ class ConvoExtractSchema:
             )
         return "\n".join(lines)
 
-    def build_model_class_from_source(self):
+    async def build_model_class_from_source(self):
         """Executes the generated class source in an isolated module and returns the ConvoExtract class object."""
-        source_code = self.render_pydantic_class(self.ask_openai_for_spec())
+        spec = await self.ask_openai_for_spec()
+        source_code = self.render_pydantic_class(spec)
+        print("===========source_code:=================\n")
+        print(source_code)
         mod = types.ModuleType("convo_extract_schema")
         exec(source_code, mod.__dict__)
         sys.modules[mod.__name__] = mod

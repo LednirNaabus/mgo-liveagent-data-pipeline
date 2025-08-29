@@ -351,7 +351,7 @@ If an enum is useful (service/payment types), return py_type="enum" and list enu
 """
 
 SYSTEM_MSG_2 = """
-You are an information-extraction engine for Gulong.ph customer chats.
+You are an information-extraction engine for MechaniGo.ph customer chats.
 
 Your ONLY job is to read:
 1) an intent rating rubric (free text, may evolve),
@@ -385,9 +385,8 @@ Constraints:
 * asking_pricelist, asking_location, asking_payment_process
 * vehicle_type, vehicle_model, tire_size, tire_brand
 * contact_number (string), location, delivery_address
-* quantity (int), service_type, service_schedule
+* service_type, service_schedule
 * order_confirmed (yes/no), payment_type, payment_method, payment_confirmed (yes/no)
-* out_of_coverage_gma (yes/no), unserviceable_vehicle_type (yes/no)
 * summary (string) : 1-3 sentence summary of customer inquiries and intent
 - You may add more fields if the rubric implies them (but keep it lean).
 - Output JSON with keys: class_name, fields[]; each field has:
