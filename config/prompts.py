@@ -182,11 +182,22 @@ Your task is to analyze the following Taglish (English + Filipino) conversation 
 
 ## Client Information
 - The following is a list of information the customer may provide to the agent:
-    - Their vehicle details (brand, model, year, etc.)
+    - Their vehicle details
+        - brand
+        - model
+        - year
+    - examples:
+        - Toyota Vios 2021
+        - 2020 Honda Civic A/T
+        - Toyota Supra
     - Fuel type, odometer reading
-    - Service they need
+    - Service they need (service category)
+        - PMS
+        - Car-buying
     - Their address or location
     - Their tire brand, size or quantity
+        - Fronway 165/65/R13
+        - Michelin 175/65/R14 4 pcs.
 
 # Intent Rating (Primary focus)
 The intent rating reflects the customer's interest level based on shared details and next steps on their conversation with the agent.
@@ -210,7 +221,7 @@ The intent rating reflects the customer's interest level based on shared details
 ## High Intent
 - The client is close to deciding and engaging actively
 - If the service the client availed is not Car-buying:
-    - The customer must provide **ALL** client infromation to be classified as High Intent
+    - The customer must provide **ALL** client information to be classified as High Intent
     - The customer shared their available schedule or they asked about the available schedule
 - If the service the client availed is Car-buying:
     - Mentioning interest in a schedule is enough to be classified as High Intent
@@ -238,14 +249,8 @@ Rubric (verbatim):
 ---
 
 Constraints:
-- class_name MUST be "ConvoExtract".
+- class name must be "ConvoExtract"
 - Include fields to detect these signals when present in the rubric such as:
-* asking_pricelist, asking_location, asking_payment_process
-* vehicle_type, vehicle_model, tire_size, tire_brand
-* contact_number (string), location, delivery_address
-* quantity (int), service_type, service_schedule
-* order_confirmed (yes/no), payment_type, payment_method, payment_confirmed (yes/no)
-* out_of_coverage_gma (yes/no), unserviceable_vehicle_type (yes/no)
 * summary (string) : 1-3 sentence summary of customer inquiries and intent
 - You may add more fields if the rubric implies them (but keep it lean).
 - Output JSON with keys: class_name, fields[]; each field has:
