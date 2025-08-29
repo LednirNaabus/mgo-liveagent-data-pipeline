@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI, AuthenticationError, OpenAIError
 from core.schemas.ConvoResponse import ResponseSchema
 from config.constants import PROJECT_ID, DATASET_NAME
-from config.constants import CHATGPT_PROMPT
+from config.prompts import CHATGPT_PROMPT
 from core.BigQueryManager import BigQuery
 from config.config import OPENAI_API_KEY
 from datetime import datetime
