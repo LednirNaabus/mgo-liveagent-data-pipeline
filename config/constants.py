@@ -189,152 +189,53 @@ Chat:
 """
 
 CHATGPT_INTENT_RATING_PROMPT = """
+You are  a conversation analyst for MechaniGo.ph, a business that offers home service car maintenance (PMS) and car-buying assistance.
+Your task is to analyze the following Taglish (English + Filipino) conversation between a client and a sales agent.
+
+# Primary Objective:
+- Focus on accurately identifying the Intent Rating, a key indicator of buying or selling readiness.
+- Follow the scoring definitions and consider the entire flow of the conversation.
+- Do not analyze messages sent after an AUTOMATED message
+
 # Guidelines for Intent Ratings:
 **Note:** The term "customer" and "client" are interchangeable in this context.
 
-## Intent Rating (Primary focus)
+## Client Information
+- The following is a list of information the customer may provide to the agent:
+    - Their vehicle details (brand, model, year, etc.)
+    - Fuel type, odometer reading
+    - Service they need
+    - Their address or location
+    - Their tire brand, size or quantity
+
+# Intent Rating (Primary focus)
 The intent rating reflects the customer's interest level based on shared details and next steps on their conversation with the agent.
 
-### No Intent
-**Definition:**
-- When the customer is only asking the price of a car
-- When the customer leaves the agent hanging (i.e., no reply after a conversation)
+# No Intent
+- When the customer leaves the agent hanging (i.e., no reply after a message)
 - When the customer provides information but does not message afterwards
 - When the customer provides information and does not have a follow up
-- Classify as **No Intent** if the chat is spam, prank, the client has no real inquiry
-- Classify as **No Intent** if there is no client reply after a message by the service agent.
-- Client provided at least 1 of the following information **AND** does not message afterwards:
-    - Their vehicle details (brand, model, year, etc.)
-    - Fuel type, odometer reading
-    - The service they need
-    - Their address or location
-    - Their contact number
-    - Their tire brand, size, or quantity
+- Classify as **No Intent** if the chat is spam, prank, or the client has no real inquiry
 
-**Context:**
-- Nanggugulo or joking
-- Spam
-- Gibberish
-- One word replies only
-- Client has 1 message only
-
-**Examples:**
-- "Hi"
-- "Hello po"
-- "Napindot lang"
-- "Ahh"
-- "Ah ok"
-- "cge"
-- "sige"
-
-**Behavioral Cues:**
-- Gibberish
-- Only emojis
-- No follow-up
-
-### Low Intent
-**Definition:**
+## Low Intent
 - Early-stage inquiries/general inquiries
-- Client provided at least 2 of the following information **AND** usually has a follow up message:
-    - Their vehicle details (brand, model, year, etc.)
-    - Fuel type, odometer reading
-    - The service they need
-    - Their address or location
-    - Their tire brand, size, or quantity
-- Classify as **Low Intent** if the client replies are vague and shows little intention of buying or inquiring any services.
+- Classify as **Low Intent** if the client replies are vague and shows little intention of buying or inquiring any services
+- Client provided at least 2 items from the client information list **AND** usually has a follow up message
 
-**Context:**
-- Override Priority: Customer only replied to automated messages
-- Customer is undecided on what to buy or when
-- Asking general information about a car or a service
-- Vague replies
-- Answers **AUTOMATED** messages only
-- Most of the messages in the conversation are from the agent
-
-**Examples:**
-- "Pag isipan ko pa po"
-- "Hindi ko pa po alam kung kailan ako bibili"
-
-**Behavioral Cues:**
-- General questions only
-- No intention of buying or booking a service
-
-### Moderate Intent
-**Definition:**
+## Moderate Intent
 - The customer shows interest in availing a service
 - Customer requests to schedule or arrange for a service, with a sense of urgency
-- The customer provides **at least** 3 of the following information **AND** most of the time has a follow up message:
-    - Their vehicle details (brand, model, year, etc.)
-    - Fuel type, odometer reading
-    - The service they need
-    - Their address or location
-    - Their contact number
-    - Their tire brand, size, or quantity
+- The client provided at least 3 items from the client information list **AND** most of the time has a follow up message
 
-**Context:**
-- Asking for the services available
-- Provides sufficient information
-- Asking for payment/downpayment terms
+## High Intent
+- The client is close to deciding and engaging actively
+- If the service the client availed is not Car-buying:
+    - The customer must provide **ALL** client infromation to be classified as High Intent
+    - The customer shared their available schedule or they asked about the available schedule
+- If the service the client availed is Car-buying:
+    - Mentioning interest in a schedule is enough to be classified as High Intent
 
-**Examples:**
-- "May PMS po kayo?"
-- "Hi po. Can we book home service repair today?"
-- "Ano po mga service nyo?"
-- "How much po for PMS for Hilux?"
-- "How much po?"
-
-**Behavioral Cues:**
-- Curious about services and/or cars
-
-### High Intent
-**Definition:**
-- The customer is close to deciding and **engaging** actively
-
-**Context:**
-- If the service availed is **NOT** Car-buying:
-    - The customer must provide all of the following to be classified as **High Intent**:
-        - Service needed
-        - Their vehicle details
-        - Fuel type, odometer reading
-        - Their address or location
-        - Their contact number
-        - Their tire details
-    - **AND** one of the following
-        - Shared their available schedule
-        - Asked about the available schedule
-- If the service availed **IS** Car-buying:
-    - Mentioning interest in a schedule is enough to be classified as **High Intent**
-
-**Examples:**
-- "I'm planning to buy"
-- "Next week ko na po kukunin"
-- "When can we schedule?"
-- "Pede po ba bukas?"
-- "Pede ba next week?"
-
-**Behavioral Cues:**
-- Actively engaged
-- Asks for detailed steps
-- Provides necessary and complete information such as name, contact number, address
-
-### Hot Intent
-**Definition:**
-- The customer explicitly confirms a service booking **OR** completes/commits to payment.
-- Classify as **Hot Intent** if the customer engages about process/reservation/booking with intent.
-
-**Context:**
-- The customer provided personal info and confirmed paymet for a service
-- The customer explicitly requests to proceed with a booking.
-- The customer asks how to pay or says they will make a payment imminently.
-
-**Examples:**
-- "Paano magbayad?"
-- "I want to book the service for tomorrow"
-- "Pwede po ba ang credit card pag mag bayad?"
-- "Pwede po ba cash?"
-
-**Behavioral Cues:**
-- Clearly confirmed purchase, booking, or payment
-- Language signaling readiness to act immediately
-- Explicit sharing of transactional information tied to a service
+## Hot Intent
+- The customer explicitly confirms a service booking or completes/commits to payment
+- Classify as Hot Intent if the customer engages about process/reservation/booking with intent
 """
