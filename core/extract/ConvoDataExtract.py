@@ -1,11 +1,12 @@
 from openai import AsyncOpenAI, AuthenticationError, OpenAIError
+from config.prompts import CHATGPT_PROMPT, SYSTEM_MSG_2
 from core.schemas.ConvoResponse import ResponseSchema
 from config.constants import PROJECT_ID, DATASET_NAME
-from config.prompts import CHATGPT_PROMPT
 from core.BigQueryManager import BigQuery
 from config.config import OPENAI_API_KEY
 from datetime import datetime
 from typing import Dict
+
 import tiktoken
 import logging
 import json
@@ -15,8 +16,19 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# TODO:
+# - Refactor ConvoDataExtract
+# - Create OpenAIClient class(?)
+# - Find a way to extract conversation data from tickets
+
 class ConvoDataExtract:
-    """Class for Conversation Data Extraction and Analysis."""
+    """
+    Dynamic, schema-aware extractor for MechaniGo.ph conversations.
+
+    - Reads an evolving intent rubric and a generated Pydantic model source (ConvoExtract).
+    - Builds a prompt that tells the LLM to extract ONLY fields present in ConvoExtract.
+    - Optionally enforces the output with Structured Outputs by compiling the class and deriving JSON Schema.
+    """
     def __init__(
         self,
         ticket_id: str = None,
