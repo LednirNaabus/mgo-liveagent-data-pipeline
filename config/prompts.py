@@ -279,3 +279,16 @@ Constraints:
 - Output JSON with keys: class_name, fields[]; each field has:
 name, py_type, description, default (optional), enum_values (optional).
 """
+
+INTENT_EVALUATOR_PROMPT = """
+You are an intent evaluator. Read an intent rating rubric (which may evolve)
+and a structured JSON payload of conversation signals (merged extraction + computed stats).
+Produce a calibrated probability distribution over ALL intent levels found in the rubric.
+
+Rules:
+- Parse the rubric to enumerate the full, ordered set of intent levels (lowest -> highest).
+- Score EVERY intent on [0,1] and make scorecard sum to 1.0 (±0.01).
+- Base decisions ONLY on provided signals + rubric; do not infer beyond evidence.
+- Prefer explicit evidence; if ambiguous, distribute probability mass accordingly.
+- Keep rationale concise (≤5 lines) and cite concrete signal fields or short snippets.
+"""
