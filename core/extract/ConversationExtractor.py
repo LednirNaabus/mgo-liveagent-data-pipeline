@@ -1,6 +1,7 @@
 from config.constants import PROJECT_ID, DATASET_NAME
 from core.BigQueryManager import BigQuery
 from typing import List, Dict, Any
+from datetime import datetime
 
 import logging
 import re
@@ -33,7 +34,7 @@ class ConvoExtractor:
 
     @staticmethod
     def parse_conversation(conversation: str) -> List[Dict]:
-        pattern = r"sender: (\w+)\nmessage: (.*?)\ndate: (.*?)\n"
+        pattern = r"sender: (\w+)\nmessage: (.*?)\ndate: (.*?)(?=\nsender:|\Z)"
         matches = re.findall(pattern, conversation, re.DOTALL)
         parsed = [
             {'role': match[0].lower(), 'content': match[1].strip(), 'datetime': match[2]}
@@ -46,13 +47,12 @@ class ConvoExtractor:
         return sum(1 for r in conversation_list if r.get("role") == role)
 
     @staticmethod
-    def convo_stats(conversation_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        from datetime import datetime
-        def parse_dt(s: str) -> datetime:
-            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+    def parse_dt(s: str):
+        return datetime.strptime(s.strip(), "%Y-%m-%d %H:%M:%S")
 
-        recs = sorted(conversation_list, key=lambda r: parse_dt(r["datetime"]))
-        
+    @staticmethod
+    def convo_stats(conversation_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        recs = sorted(conversation_list, key=lambda r: ConvoExtractor.parse_dt(r["datetime"]))
         num_agent = ConvoExtractor.count_role(recs, "agent")
         num_system = ConvoExtractor.count_role(recs, "system")
         num_user = ConvoExtractor.count_role(recs, "client")
