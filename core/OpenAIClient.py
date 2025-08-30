@@ -8,10 +8,8 @@ logging.basicConfig(
 
 class OpenAIClient:
     """Handles OpenAI client initialization."""
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str = None):
         self.api_key = api_key
-        if not self.api_key:
-            raise ValueError("API key is not set or invalid!")
         self.client = None
 
     async def init_async_client(self) -> AsyncOpenAI:
