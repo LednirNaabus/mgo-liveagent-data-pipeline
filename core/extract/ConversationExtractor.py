@@ -1,5 +1,5 @@
 from config.constants import PROJECT_ID, DATASET_NAME
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Tuple, Any, Optional
 from core.BigQueryManager import BigQuery
 from datetime import datetime
 from statistics import mean
@@ -49,47 +49,41 @@ class ConvoExtractor:
         return parsed
 
     @staticmethod
-    def count_role(conversation_list: List[Dict[str, Any]], role: str):
+    def count_role(conversation_list: List[Dict[str, Any]], role: str) -> int:
         return sum(1 for r in conversation_list if r.get("role") == role)
 
     @staticmethod
-    def parse_dt(s: str):
+    def parse_dt(s: str) -> datetime:
         return datetime.strptime(s.strip(), "%Y-%m-%d %H:%M:%S")
 
     @staticmethod
-    def convo_stats(conversation_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        recs = sorted(conversation_list, key=lambda r: ConvoExtractor.parse_dt(r["datetime"]))
-
-        # TODO:
-        # - extract logic of counting message exchanges and computing average customer response time into helper functions
-
-        # count messages for each sender
-        num_agent = ConvoExtractor.count_role(recs, "agent")
-        num_system = ConvoExtractor.count_role(recs, "system")
-        num_user = ConvoExtractor.count_role(recs, "client")
-
-        # exchanges: user message that gets at least one non-user reply before next user message
+    def count_exchanges(conversation_list: List[Dict[str, Any]]) -> int:
         exchanges = 0
         i = 0
-        while i < len(recs):
-            if recs[i].get("role") == "client":
+        while i < len(conversation_list):
+            if conversation_list[i].get("role") == "client":
                 j, got_reply = i + 1, False
-                while j < len(recs) and recs[j].get("role") != "client":
-                    if recs[j].get("role") in ("system", "agent"):
+                while j < len(conversation_list) and conversation_list[j].get("role") != "client":
+                    if conversation_list[j].get("role") in ("system", "agent"):
                         got_reply = True
                     j += 1
                 exchanges += 1 if got_reply else 0
                 i = j
             else:
                 i += 1
+        return exchanges
 
-        start_dt = ConvoExtractor.parse_dt(recs[0]["datetime"]) if recs else None
-        end_dt = ConvoExtractor.parse_dt(recs[-1]["datetime"]) if recs else None
+    @staticmethod
+    def get_start_end(conversation_list: List[Dict[str, Any]]) -> Tuple[Optional[datetime], Optional[datetime]]:
+        start_str = ConvoExtractor.parse_dt(conversation_list[0]["datetime"]) if conversation_list else None
+        end_str = ConvoExtractor.parse_dt(conversation_list[-1]["datetime"]) if conversation_list else None
+        return start_str, end_str
 
-        # compute average customer response time (seconds)
+    @staticmethod
+    def compute_average_response_time(conversation_list: List[Dict[str, Any]]) -> Tuple[Optional[float], Optional[str]]:
         deltas = []
         last_time: Optional[datetime] = None
-        for r in recs:
+        for r in conversation_list:
             t = ConvoExtractor.parse_dt(r["datetime"])
             role = r.get("role")
             if role in ("system", "agent"):
@@ -99,12 +93,26 @@ class ConvoExtractor:
                 if delta >= 0:
                     deltas.append(delta)
                 last_time = None # only count the first reply
-
         avg_secs = mean(deltas) if deltas else None
         avg_hms = (
             None if avg_secs is None else
             f"{int(avg_secs//3600):02d}:{int((avg_secs%3600)//60):02d}:{int(avg_secs%60):02d}"
         )
+        return avg_secs, avg_hms
+
+    @staticmethod
+    def convo_stats(conversation_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        recs = sorted(conversation_list, key=lambda r: ConvoExtractor.parse_dt(r["datetime"]))
+
+        # count messages for each sender
+        num_agent = ConvoExtractor.count_role(recs, "agent")
+        num_system = ConvoExtractor.count_role(recs, "system")
+        num_user = ConvoExtractor.count_role(recs, "client")
+
+        # exchanges: user message that gets at least one non-user reply before next user message
+        exchanges = ConvoExtractor.count_exchanges(recs)
+        start_dt, end_dt = ConvoExtractor.get_start_end(recs)
+        avg_secs, avg_hms = ConvoExtractor.compute_average_response_time(recs)
 
         return {
             "num_agent_messages": num_agent,
