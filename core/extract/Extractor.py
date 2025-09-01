@@ -251,33 +251,82 @@ class Extractor:
                 status=ResponseStatus.ERROR
             )
 
-    async def extract_conversation_analysis(self) -> ExtractionResponse:
+    # async def extract_conversation_analysis(self) -> ExtractionResponse:
+    #     try:
+            # chats = recent_tickets(
+            #     bq_client=self.bigquery,
+            #     project_id=PROJECT_ID,
+            #     dataset_name=DATASET_NAME,
+            #     table_name="messages",
+            #     date_filter="datecreated",
+            #     limit=None
+            # )
+    #         ticket_messages_df = await process_chat(chats)
+    #         geolocation = process_address(ticket_messages_df, self.geocoder)
+    #         ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
+    #         ticket_messages_df = tag_viable(ticket_messages_df)
+    #         ticket_messages_df = drop_cols(ticket_messages_df, "score", "input_address", "lat", "lng", "error")
+    #         logging.info("Generating schema and loading data to BigQuery...")
+    #         schema = prepare_and_load_to_bq(self.bigquery, ticket_messages_df, "convo_analysis", load_data=False)
+    #         upsert_to_bq_with_staging(self.bigquery, ticket_messages_df, schema, "convo_analysis")
+    #         logging.info("Done loading to BigQuery!")
+    #         return ticket_messages_df.fillna(value=0).to_dict(orient="records")
+    #     except Exception as e:
+    #         logging.error(f"Exception occurred while extracting conversation analysis: {e}")
+    #         return ExtractionResponse(
+    #             count="0",
+    #             data=[],
+    #             status=ResponseStatus.ERROR
+    #         )
+    async def extract_conversation_analysis(self):
         try:
+            try:
+                from core.extract.ConversationPipeline import ConversationPipeline
+                from config.prompts import CHATGPT_INTENT_RATING_PROMPT
+                from config.config import OPENAI_API_KEY
+                import json
+            except ImportError as e:
+                logging.error(f"Exception occurred: {e}")
+                raise
+
+            async def process_tickets(ticket_ids, api_key, intent_prompt):
+                results = {}
+                
+                for ticket_id in ticket_ids:
+                    pipeline = ConversationPipeline(
+                        api_key=api_key,
+                        convo_id=ticket_id,
+                        intent_prompt=intent_prompt
+                    )
+
+                    try:
+                        result = await pipeline.run()
+                        results[ticket_id] = result
+                    except Exception as e:
+                        logging.error(f"Error processing ticket {ticket_id}: {e}")
+                        results[ticket_id] = {"error": str(e)}
+
+                return results
+
             chats = recent_tickets(
                 bq_client=self.bigquery,
                 project_id=PROJECT_ID,
                 dataset_name=DATASET_NAME,
                 table_name="messages",
                 date_filter="datecreated",
-                limit=None
+                limit=3
             )
-            ticket_messages_df = await process_chat(chats)
-            geolocation = process_address(ticket_messages_df, self.geocoder)
-            ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
-            ticket_messages_df = tag_viable(ticket_messages_df)
-            ticket_messages_df = drop_cols(ticket_messages_df, "score", "input_address", "lat", "lng", "error")
-            logging.info("Generating schema and loading data to BigQuery...")
-            schema = prepare_and_load_to_bq(self.bigquery, ticket_messages_df, "convo_analysis", load_data=False)
-            upsert_to_bq_with_staging(self.bigquery, ticket_messages_df, schema, "convo_analysis")
-            logging.info("Done loading to BigQuery!")
-            return ticket_messages_df.fillna(value=0).to_dict(orient="records")
+
+            ticket_ids = chats["ticket_id"].to_list()
+            results = await process_tickets(
+                ticket_ids=ticket_ids,
+                api_key=OPENAI_API_KEY,
+                intent_prompt=CHATGPT_INTENT_RATING_PROMPT
+            )
+            return json.dumps(results, indent=4, ensure_ascii=False)
         except Exception as e:
             logging.error(f"Exception occurred while extracting conversation analysis: {e}")
-            return ExtractionResponse(
-                count="0",
-                data=[],
-                status=ResponseStatus.ERROR
-            )
+            return None
 
     def clear_all_caches(self):
         logging.info("Clearing caches...")
