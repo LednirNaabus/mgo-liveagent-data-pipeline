@@ -1,9 +1,10 @@
 from core.chat_analysis.schemas.IntentEvaluation import IntentEvaluation
 from core.chat_analysis.helpers.derive_intent_prompt import user_msg
 from config.prompts import INTENT_EVALUATOR_PROMPT
+from typing import Dict, List, Any, Optional
 from core.OpenAIClient import OpenAIClient
-from typing import Dict, Any, Optional
 from textwrap import dedent
+import json
 
 class IntentEvaluator:
     def __init__(
@@ -30,7 +31,7 @@ class IntentEvaluator:
         self.user_message = dedent(user_msg(self.rubric_text, self.signals, self.require_evidence))
 
     # call OpenAI Responses API
-    async def call_responses_api(self):
+    async def call_responses_api(self) -> Any:
         response = await self.client.responses.parse(
             model=self.model,
             input=[
@@ -42,4 +43,80 @@ class IntentEvaluator:
             max_output_tokens=2000,
             timeout=self.timeout_ms
         )
-        return response
+
+        content_text = getattr(response, "output_text", None)
+        if content_text is None:
+            # fallback for older SDKs
+            block = response.output[0].content[0]
+            content_text = block.text
+
+        return response, json.loads(content_text)
+
+    async def generate_scorecard(self, response: Any, result: Dict[str, List]):
+        intents = list(result.get("intents", []))
+        raw_scorecard = result.get("scorecard", [])
+        score_map: Dict[str, float] = {}
+
+        if isinstance(raw_scorecard, list):
+            for item in raw_scorecard:
+                if not isinstance(item, dict):
+                    continue
+                intent = item.get("intent")
+                val = item.get("score")
+                if isinstance(intent, str) and isinstance(val, (int, float)):
+                    score_map[intent] = float(val)
+        elif isinstance(raw_scorecard, dict):
+            score_map = {
+                k: float(v) for k, v in raw_scorecard.items() if isinstance(v (int, float))
+            }
+        else:
+            score_map = {}
+
+        for intent in intents:
+            score_map.setdefault(intent, 0.0)
+
+        score_map = {k: float(v) for k, v in score_map.items() if k in intents}
+
+        for k in list(score_map.keys()):
+            v = score_map[k]
+            score_map[k] = 0.0 if v < 0 else (1.0 if v > 1 else v)
+
+        total = sum(score_map.values())
+        if total <= 0:
+            if intents:
+                uniform = 1.0 / len(intents)
+                score_map = {k: uniform for k in intents}
+            else:
+                score_map = {}
+        else:
+            score_map = {k: v / total for k, v in score_map.items()}
+
+        top_intent = max(score_map.items(), key=lambda kv: kv[1])[0] if score_map else None
+        score_map = {k: round(v, 6) for k, v in score_map.items()}
+
+        rounded_sum = sum(score_map.values())
+        delta = round(1.0 - rounded_sum, 6)
+        if top_intent is not None and abs(delta) >= 1e-6:
+            score_map[top_intent] = round(max(0.0, min(1.0, score_map[top_intent] + delta)), 6)
+
+        top_confidence = score_map.get(top_intent) if top_intent is not None else None
+
+        scorecard_list: List[Dict[str, Any]] = [
+            {
+                "intent": intent,
+                "score": score_map.get(intent, 0.0)
+            } for intent in intents
+        ]
+
+        result["scorecard"] = scorecard_list
+        result["top_intent"] = top_intent
+        result["top_confidence"] = top_confidence
+        result["model"] = self.model
+        result["scorecard"] = scorecard_list
+        token_usage = response.usage.model_dump_json()
+        result["token_usage"] = json.loads(token_usage)
+
+        if self.require_evidence and not result.get("evidence"):
+            result["evidence"] = []
+
+        return result
