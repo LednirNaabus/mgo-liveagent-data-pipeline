@@ -1,3 +1,4 @@
+from core.chat_analysis.schemas.IntentEvaluation import IntentEvaluation
 from core.chat_analysis.helpers.derive_intent_prompt import user_msg
 from config.prompts import INTENT_EVALUATOR_PROMPT
 from core.OpenAIClient import OpenAIClient
@@ -21,7 +22,24 @@ class IntentEvaluator:
             raise ValueError("signals must be a non-empty dict.")
         self.rubric_text = rubric_text
         self.signals = signals
-        self.require_evidence = require_evidence
+        self.model = model
         self.client = client
+        self.timeout_ms = timeout_ms
+        self.require_evidence = require_evidence
         self.system_message = dedent(INTENT_EVALUATOR_PROMPT)
         self.user_message = dedent(user_msg(self.rubric_text, self.signals, self.require_evidence))
+
+    # call OpenAI Responses API
+    async def call_responses_api(self):
+        response = await self.client.responses.parse(
+            model=self.model,
+            input=[
+                {"role": "system", "content": self.system_message},
+                {"role": "user", "content": self.user_message}
+            ],
+            text_format=IntentEvaluation,
+            temperature=0,
+            max_output_tokens=2000,
+            timeout=self.timeout_ms
+        )
+        return response
