@@ -6,4 +6,4 @@ class ScoreItem(BaseModel):
     score: Annotated[
         float, Field(ge=0.0, le=1.0)
     ] = Field(..., description="Confidence for this intent in [0,1]")
-    model_confi = {"extra": "forbid"}
+    model_config = {"extra": "forbid"}
