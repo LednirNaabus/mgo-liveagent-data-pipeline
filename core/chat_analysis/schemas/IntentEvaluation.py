@@ -23,7 +23,8 @@ class IntentEvaluation(BaseModel):
     rationale: str = Field(..., description="Short explanation (≤5 lines)")
     evidence: List[str] = Field(default_factory=list, description="Concrete items citing fields/timestamps/snippets")
 
-    model_config = {"extra", "forbid"}
+    class Config:
+        extra = "forbid"
 
     @model_validator(mode="after")
     def _enforce_consistency(self):
