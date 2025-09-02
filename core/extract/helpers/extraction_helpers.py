@@ -6,9 +6,11 @@ from utils.date_utils import set_timezone
 from config.config import OPENAI_API_KEY
 from core.Geocode import Geocoder
 from config.config import MNL_TZ
+from typing import Any
 import pandas as pd
 import logging
 import asyncio
+import csv
 import re
 
 logging.basicConfig(
@@ -170,3 +172,51 @@ def create_base_log_dataframe() -> pd.DataFrame:
     df["extraction_date"] = pd.to_datetime(df["extraction_date"], errors="coerce")
     df = set_timezone(df, "extraction_date", target_tz=MNL_TZ)
     return df
+
+def save_json_to_csv(
+    results: dict[str, dict[str, Any]],
+    summary_file: str = "results.csv",
+    scorecard_file: str = "scorecard.csv"
+) -> None:
+    with open(summary_file, "w", newline="", encoding="utf-8") as f:
+        fieldnames = [
+            "ticket_id",
+            "top_intent",
+            "top_confidence",
+            "rationale",
+            "model",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens"
+        ]
+
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for ticket_id, data in results.items():
+            row = {
+                "ticket_id": ticket_id,
+                "top_intent": data.get("top_intent"),
+                "top_confidence": data.get("top_confidence"),
+                "rationale": data.get("rationale"),
+                "model": data.get("model"),
+                "input_tokens": data.get("token_usage", {}).get("input_tokens"),
+                "output_tokens": data.get("token_usage", {}).get("output_tokens"),
+                "total_tokens": data.get("token_usage", {}).get("total_tokens")
+            }
+            writer.writerow(row)
+
+    with open(scorecard_file, "w", newline="", encoding="utf-8") as f:
+        fieldnames = ["ticket_id", "intent", "score"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for ticket_id, data in results.items():
+            for sc in data.get("scorecard", []):
+                writer.writerow({
+                    "ticket_id": ticket_id,
+                    "intent": sc.get("intent"),
+                    "score": sc.get("score")
+                })
+
+    logging.info(f"Saved {summary_file} and {scorecard_file}")
