@@ -3,21 +3,24 @@ from core.chat_analysis.ConvoExtractSchema import ConvoExtractSchema
 from core.chat_analysis.ConversationExtractor import ConvoExtractor
 from core.chat_analysis.IntentEvaluator import IntentEvaluator
 from core.OpenAIClient import OpenAIClient
+from core.BigQueryManager import BigQuery
 import json
 
 class ConversationPipeline:
-    def __init__(self, api_key, convo_id, intent_prompt, schema_model="gpt-4o-mini", eval_model="gpt-4.1-mini"):
-        self.api_key = api_key
+    def __init__(
+        self,
+        openai_client: OpenAIClient,
+        bq_client: BigQuery,
+        convo_id: str,
+        intent_prompt: str,
+        model: str = "gpt-4o-mini"
+    ):
+        self.openai_client = openai_client
+        self.bq_client = bq_client
         self.convo_id = convo_id
         self.intent_prompt = intent_prompt
-        self.schema_model = schema_model
-        self.eval_model = eval_model
-        self.openai_client = None
+        self.model = model
         self.schema_class = None
-
-    async def init_client(self):
-        """Initialize the OpenAI client asynchronously."""
-        self.openai_client = await OpenAIClient(self.api_key).init_async_client()
 
     async def build_schema(self):
         """Generate a schema class from the rubric prompt."""
@@ -29,7 +32,7 @@ class ConversationPipeline:
 
     async def extract_signals(self):
         """Extract structured data and conversation stats."""
-        ce = ConvoExtractor(self.convo_id)
+        ce = ConvoExtractor(self.convo_id, self.bq_client)
         conversation = ce.get_convo_str()
         conversation_parsed = ce.parse_conversation(conversation)
 
@@ -38,7 +41,7 @@ class ConversationPipeline:
             schema_class=self.schema_class,
             messages=conversation_parsed,
             client=self.openai_client,
-            model=self.schema_model
+            model=self.model
         )
 
         extracted = await extractor.extract_validated()
@@ -55,7 +58,7 @@ class ConversationPipeline:
             rubric_text=self.intent_prompt,
             signals=signals,
             client=self.openai_client,
-            model=self.eval_model
+            model=self.model
         )
 
         response, result = await intent_evaluator.call_responses_api()
@@ -64,7 +67,6 @@ class ConversationPipeline:
 
     async def run(self):
         """Execute the full pipeline and return final results."""
-        await self.init_client()
         await self.build_schema()
         signals = await self.extract_signals()
         results = await self.evaluate_intent(signals)

@@ -19,9 +19,9 @@ class ConvoExtractor:
     Args:
         `ticket_id` (str): Expects a Ticket ID from BigQuery (`ticket_id` column)
     """
-    def __init__(self, ticket_id: str = None):
+    def __init__(self, ticket_id: str = None, bq_client: BigQuery = None):
         self.ticket_id = ticket_id
-        self.bq_client = BigQuery()
+        self.bq_client = bq_client
 
     def get_convo_str(self) -> str:
         """Get messages from BigQuery messages table and convert them to type string."""

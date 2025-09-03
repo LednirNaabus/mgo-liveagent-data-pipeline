@@ -1,4 +1,4 @@
-from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, recent_tickets, process_chat, process_address, save_json_to_csv
+from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, recent_tickets
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
 from core.extract.ConversationPipeline import ConversationPipeline
@@ -6,17 +6,17 @@ from config.prompts import CHATGPT_INTENT_RATING_PROMPT
 from config.constants import PROJECT_ID, DATASET_NAME
 from core.schemas.TicketFilter import FilterField
 from core.LiveAgentClient import LiveAgentClient
-from utils.geocode_utils import tag_viable
+from core.OpenAIClient import OpenAIClient
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
-from utils.df_utils import drop_cols
+from config.config import OPENAI_API_KEY
 from core.Geocode import Geocoder
 from core.Ticket import Ticket
 from core.Agent import Agent
 from core.Tag import Tag
-from typing import List
 import pandas as pd
 import aiohttp
+import asyncio
 import logging
 import json
 
@@ -38,6 +38,7 @@ class Extractor:
     def __init__(
         self,
         api_key: str,
+        bigquery: BigQuery,
         max_page: int,
         per_page: int,
         session: aiohttp.ClientSession
@@ -49,7 +50,7 @@ class Extractor:
         self.ticket = Ticket(self.client)
         self.agent = Agent(self.client)
         self.tag = Tag(self.client)
-        self.bigquery = BigQuery()
+        self.bigquery = bigquery
         self.geocoder = Geocoder(self.bigquery)
         self.session = session 
 
@@ -251,53 +252,43 @@ class Extractor:
                 status=ResponseStatus.ERROR
             )
 
-    async def extract_conversation_analysis(self):
-        async def process_tickets(ticket_ids: List[str], api_key: str, intent_prompt: str):
-            results = {}
-            for ticket_id in ticket_ids:
-                pipeline = ConversationPipeline(
-                    api_key=api_key,
-                    convo_id=ticket_id,
-                    intent_prompt=intent_prompt
-                )
-                try:
-                    result = await pipeline.run()
-                    results[ticket_id] = result
-                except Exception as e:
-                    logging.error(f"Error processing ticket {ticket_id}: {e}")
-                    results[ticket_id] = {"error": str(e)}
-
-            return results
-        try:
-            try:
-                from config.config import OPENAI_API_KEY
-            except ImportError as e:
-                logging.error(f"Exception occurred: {e}")
-                raise
-            except Exception as e:
-                logging.error(f"OpenAI API key not found: {e}")
-                raise
-
-            chats = recent_tickets(
+    async def process_tickets_into_pipeline(self, openai_client: OpenAIClient):
+        async def run_pipeline(ticket_id):
+            pipeline = ConversationPipeline(
+                openai_client=openai_client,
                 bq_client=self.bigquery,
-                project_id=PROJECT_ID,
-                dataset_name=DATASET_NAME,
-                table_name="messages",
-                date_filter="datecreated",
-                limit=1
-            )
-
-            ticket_ids = chats["ticket_id"].to_list()
-            results = await process_tickets(
-                ticket_ids=ticket_ids,
-                api_key=OPENAI_API_KEY,
+                convo_id=ticket_id,
                 intent_prompt=CHATGPT_INTENT_RATING_PROMPT
             )
-            save_json_to_csv(results)
-            return json.dumps(results, indent=4, ensure_ascii=False)
-        except Exception as e:
-            logging.error(f"Exception occurred while extracting conversation analysis: {e}")
-            return None
+            try:
+                result = await pipeline.run()
+                return ticket_id, result
+            except Exception as e:
+                logging.error(f"Exception occurred while executing ConversationPipeline: {e}")
+                return ticket_id, None
+
+        chats = recent_tickets(
+            bq_client=self.bigquery,
+            project_id=PROJECT_ID,
+            dataset_name=DATASET_NAME,
+            table_name="messages",
+            date_filter="datecreated",
+            limit=1
+        )
+        ticket_ids = chats["ticket_id"].to_list()
+        logging.info(f"Number of tickets: {len(ticket_ids)}")
+        tasks = [run_pipeline(ticket_id) for ticket_id in ticket_ids]
+        results = await asyncio.gather(*tasks)
+        return {
+            ticket_id: result
+            for ticket_id, result in results
+        }
+
+    async def extract_conversation_analysis(self):
+        openai_client = await OpenAIClient(OPENAI_API_KEY).init_async_client()
+        result = await self.process_tickets_into_pipeline(openai_client)
+        print(json.dumps(result, indent=4, ensure_ascii=False))
+        return result
 
     def clear_all_caches(self):
         logging.info("Clearing caches...")
