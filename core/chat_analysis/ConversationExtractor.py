@@ -28,7 +28,8 @@ class ConvoExtractor:
         query = """
         SELECT sender_type, message, message_datecreated
         FROM `{}.{}.messages`
-        WHERE ticket_id = '{}' AND message_format = 'T'
+        WHERE ticket_id = '{}'
+            AND message_type = 'M' AND message_format = 'T'
         ORDER BY datecreated
         """.format(PROJECT_ID, DATASET_NAME, self.ticket_id)
         df_messages = self.bq_client.sql_query_bq(query)
