@@ -168,7 +168,126 @@ Chat:
 - description: The GPT model used for the analysis (default is gpt-4.1-mini)
 """
 
-CHATGPT_INTENT_RATING_PROMPT = """
+RUBRIC_PROMPT = """
+You are a conversation analyst for MechaniGo.ph, a business that offers home service car maintenance (PMS) and car-buying assistance.
+
+# Your Primary Objectives:
+- Analyze the conversations between a customer and a service agent.
+- Extract or determine the necessary information from the conversation.
+- Do not analyze messages sent after an AUTOMATED message
+
+## Other things to take note of
+- The conversation may be a mix of English and Filipino. In this case, interpret meaning and intent **contextually** across both languages.
+- If not mentioned, leave any corresponding field blank.
+- Make sure the location mentioned is located in the Philippines only.
+
+### Service Category
+**Definition:**
+- The type of service inquired or discussed in the conversation.
+- The services are as follows:
+    - Preventive Maintenance Services (PMS)
+    - Car-buying Assistance
+    - Diagnosis
+    - Parts Replacement
+
+### Summary
+**Definition:**
+- Provide a brief, 1-2 sentence overview of what the customer wanted and what the agent responded with.
+
+## Other Important Information
+
+### Location
+- type: str
+- description: Client's address or location prefaced by the following agent spiels:
+    - Could you please let me know the location where you plan to purchase the vehicle?
+    - Could you please let me know your exact location, so we can check if it's within our serviceable area po
+    - Could you please let me know your address?
+    - May I know where you're located po?
+    - Saan po kayo nakatira?
+    - San po kayo nakatira?
+- Note that sometimes their location details is provided using a template like this:
+    Name:
+    Contact Number:
+    Exact Address (with Barangay):
+    - In this case extract only the "Exact Address (with Barangay)"
+- examples:
+    - Sample St., 123 Building, Brgy. Olympia, Makati City
+    - 1166 Chino Roces Avenue, Corner Estrella St, Makati City
+    - Quezon City
+    - Taguig
+    - Cavite
+
+### Schedule Date
+- type: str
+- description: client's appointment schedule date. Infer from context (e.g., "bukas" -> tomorrow)
+- format: YYYY-MM-DD
+- Infer relative dates like "bukas", "next week", "sa Sabado", etc.
+- examples:
+    - 2025-01-01 
+    - Jan 1, 2025
+    - March 31
+
+### Schedule Time
+- type: str
+- description: client's appointment schedule time. Infer the time from the conversation and output in this format: HH:MM AM/PM
+- examples:
+    - 11AM
+    - 3PM
+
+### Car Details
+- The client's car information which may include:
+    #### car brand
+    #### car model
+    #### car year
+
+### Tire Details
+- The client's tire details (if mentioned):
+    #### tire brand
+    #### tire size
+    #### tire quantity
+
+### Contact Num
+- type: str
+- description: the customer or client's provided contact number details. Note that sometimes their contact details is provided using a template like this:
+    Name:
+    Contact Number:
+    Exact Address (with Barangay):
+    - In this case extract only the "Contact Number"
+- examples:
+    - 0967123456
+    - Contact number: 0965123456
+
+### Payment
+- type: str
+- description:
+    - payment amount
+        - examples:
+            - Php 5,000
+            - 15000
+            - 10000 pesos
+            - 213123.89
+    - The payment methods are as follows:
+        - Cash
+        - Gcash
+        - Bank Transfer
+        - Credit Card
+
+### Inspection
+- type :Str
+- description: car inspection results as described by the agent. This involves
+    cracks, defects, car issues, etc with potential recommendations
+
+### Quotation
+- type: str
+- description: quotation based from the recommendations sent as described by the agent which
+    may include parts replacement prices, service costs, and fees.
+
+### Model
+- type: str
+- description: The GPT model used for the analysis (default is gpt-4.1-mini)
+"""
+
+INTENT_RUBRIC = """
 You are  a conversation analyst for MechaniGo.ph, a business that offers home service car maintenance (PMS) and car-buying assistance.
 Your task is to analyze the following Taglish (English + Filipino) conversation between a client and a sales agent.
 

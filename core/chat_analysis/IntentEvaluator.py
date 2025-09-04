@@ -1,8 +1,8 @@
-from core.chat_analysis.schemas.IntentEvaluation import IntentEvaluation
 from core.chat_analysis.helpers.derive_intent_prompt import user_msg
 from config.prompts import INTENT_EVALUATOR_PROMPT
 from typing import Dict, List, Any, Optional
 from core.OpenAIClient import OpenAIClient
+from .schemas import IntentEvaluation
 from textwrap import dedent
 import json
 

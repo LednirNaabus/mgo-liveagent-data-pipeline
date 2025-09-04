@@ -1,8 +1,10 @@
 # from core.extract.ConvoDataExtract import ConvoDataExtract
-from core.chat_analysis.schemas.Spec import SchemaSpec
+# from core.chat_analysis.schemas.schemas import SchemaSpec
 from config.prompts import SYSTEM_MSG_1, USER_TMPL
 from pydantic import ValidationError, BaseModel
-from typing import Optional, Any
+from core.OpenAIClient import OpenAIClient
+from .schemas import SchemaSpec
+from typing import Optional
 
 from textwrap import dedent
 import types
@@ -15,7 +17,7 @@ class ConvoExtractSchema:
         self,
         intent_prompt: str,
         model: Optional[str] = "gpt-4o-mini", # default model
-        client: Any = None
+        client: OpenAIClient = None
     ):
         self.intent_prompt = intent_prompt
         self.model = model if model is not None else "gpt-4.1-mini"

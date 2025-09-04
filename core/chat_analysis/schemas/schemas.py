@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, List, Literal
 from typing_extensions import Annotated
+from typing import Optional, List
 
 class FieldSpec(BaseModel):
     name: str

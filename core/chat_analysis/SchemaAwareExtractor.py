@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+from core.OpenAIClient import OpenAIClient
 from config.prompts import SYSTEM_MSG_2
 from pydantic import BaseModel
 from textwrap import dedent
@@ -15,11 +16,11 @@ class SchemaAwareExtractor:
     """
     def __init__(
         self,
+        client: OpenAIClient,
         rubric: str,
         schema_class: type[BaseModel],
         messages: List[Dict[str, str]] = [],
         model: str = "gpt-4o-mini",
-        client: Any = None
     ):
         """
         Args:

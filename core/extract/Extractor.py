@@ -1,12 +1,10 @@
 from core.extract.helpers.extraction_helpers import process_tickets, process_ticket_messages, process_agents, process_tags, recent_tickets
 from core.extract.helpers.extractor_bq_helpers import prepare_and_load_to_bq, upsert_to_bq_with_staging
 from api.schemas.response import ExtractionResponse, ResponseStatus
-from core.extract.ConversationPipeline import ConversationPipeline
-from config.prompts import CHATGPT_INTENT_RATING_PROMPT
+from core.extract.ConversationPipeline import start_pipeline
 from config.constants import PROJECT_ID, DATASET_NAME
 from core.schemas.TicketFilter import FilterField
 from core.LiveAgentClient import LiveAgentClient
-from core.OpenAIClient import OpenAIClient
 from core.BigQueryManager import BigQuery
 from utils.tickets_util import set_filter
 from config.config import OPENAI_API_KEY
@@ -16,9 +14,7 @@ from core.Agent import Agent
 from core.Tag import Tag
 import pandas as pd
 import aiohttp
-import asyncio
 import logging
-import json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -252,43 +248,21 @@ class Extractor:
                 status=ResponseStatus.ERROR
             )
 
-    async def process_tickets_into_pipeline(self, openai_client: OpenAIClient):
-        async def run_pipeline(ticket_id):
-            pipeline = ConversationPipeline(
-                openai_client=openai_client,
-                bq_client=self.bigquery,
-                convo_id=ticket_id,
-                intent_prompt=CHATGPT_INTENT_RATING_PROMPT
-            )
-            try:
-                result = await pipeline.run()
-                return ticket_id, result
-            except Exception as e:
-                logging.error(f"Exception occurred while executing ConversationPipeline: {e}")
-                return ticket_id, None
-
-        chats = recent_tickets(
-            bq_client=self.bigquery,
-            project_id=PROJECT_ID,
-            dataset_name=DATASET_NAME,
-            table_name="messages",
-            date_filter="datecreated",
-            limit=1
-        )
-        ticket_ids = chats["ticket_id"].to_list()
-        logging.info(f"Number of tickets: {len(ticket_ids)}")
-        tasks = [run_pipeline(ticket_id) for ticket_id in ticket_ids]
-        results = await asyncio.gather(*tasks)
-        return {
-            ticket_id: result
-            for ticket_id, result in results
-        }
-
     async def extract_conversation_analysis(self):
-        openai_client = await OpenAIClient(OPENAI_API_KEY).init_async_client()
-        result = await self.process_tickets_into_pipeline(openai_client)
-        print(json.dumps(result, indent=4, ensure_ascii=False))
-        return result
+        try:
+            result = await start_pipeline(OPENAI_API_KEY, self.bigquery)
+            return ExtractionResponse(
+                status=ResponseStatus.SUCCESS,
+                count=str(len(result)),
+                data=result
+            )
+        except Exception as e:
+            logging.error(f"Exception occurred while analyzing conversations: {e}")
+            return ExtractionResponse(
+                count="0",
+                data=[],
+                status=ResponseStatus.ERROR
+            )
 
     def clear_all_caches(self):
         logging.info("Clearing caches...")
