@@ -19,7 +19,7 @@ class ConvoExtractor:
     Args:
         `ticket_id` (str): Expects a Ticket ID from BigQuery (`ticket_id` column)
     """
-    def __init__(self, ticket_id: str = None, bq_client: BigQuery = None):
+    def __init__(self, bq_client: BigQuery = None, ticket_id: str = None):
         self.ticket_id = ticket_id
         self.bq_client = bq_client
 
