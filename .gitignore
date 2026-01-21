@@ -3,6 +3,9 @@ env/
 misc/
 tmp/
 .env
+.env.dev
+.env.prod
+.env.test
 
 # testing
 test.py
