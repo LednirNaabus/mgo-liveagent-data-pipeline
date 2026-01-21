@@ -15,8 +15,9 @@ from google.cloud.bigquery_storage_v1 import types as bqs_types
 from google.cloud.bigquery_storage_v1 import writer as bq_writer
 from google.oauth2 import service_account
 
-from configs.log_utils import get_logger, manila_tz
-from configs.config import ENV
+from chat_analysis.configs.log_utils import get_logger, manila_tz
+from chat_analysis.configs.config import ENV
+from utils.json_utils import clean_json_text
 
 logger = get_logger(__name__, level="INFO")
 
