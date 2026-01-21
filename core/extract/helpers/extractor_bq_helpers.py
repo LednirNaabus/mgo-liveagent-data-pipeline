@@ -47,6 +47,13 @@ def upsert_to_bq_with_staging(
     Helper function for `Extractor` class that loads a DataFrame into a **staging** table, then executes a `MERGE`
     operation into the main table. For the cleanup step, drops the **staging** table.
     """
+    if df.empty:
+        logging.error(f"DataFrame is empty, cannot load to {table_name}")
+        raise ValueError(f"DataFrame is empty for table {table_name}")
+    
+    logging.info(f"DataFrame shape: {df.shape}")
+    logging.info(f"DataFrame columns: {df.columns.tolist()}")
+    
     # TODO: Refactor this block later
     staging_table_name = f"{table_name}_staging"
     update_columns = []
@@ -72,30 +79,81 @@ def upsert_to_bq_with_staging(
         ]
         all_columns = ['ticket_id'] + update_columns
         identifier = "ticket_id"
-        # For historical data purposes
+        
+        # For historical data purposes - load to history table first
         history = f"{table_name}_history"
-        bq.load_dataframe(
-            df,
-            history,
-            write_disposition="WRITE_APPEND",
-            schema=schema
-        )
+        try:
+            logging.info(f"Loading {len(df)} rows to history table: {history}")
+            
+            for col in df.columns:
+                col_dtype = str(df[col].dtypes)
+                if col_dtype == 'object':
+                    sample = df[col].dropna().head(1)
+                    if not sample.empty:
+                        val = sample.iloc[0]
+                        if isinstance(val, (list, dict)) and not isinstance(val, str):
+                            logging.warning(f"Column {col} contains complex objects: {type(val)}")
+            
+            bq.load_dataframe(
+                df,
+                history,
+                write_disposition="WRITE_APPEND",
+                schema=schema
+            )
+            logging.info(f"Successfully loaded to history table: {history}")
+        except Exception as e:
+            logging.error(f"Error loading to history table {history}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
     else:
         all_columns = ['id'] + update_columns
         identifier = "id"
 
     logging.info(f"Table staging name: {staging_table_name}")
 
-    bq.load_dataframe(
-        df,
-        staging_table_name,
-        write_disposition="WRITE_TRUNCATE",
-        schema=schema
-    )
+    try:
+        bq.load_dataframe(
+            df,
+            staging_table_name,
+            write_disposition="WRITE_TRUNCATE",
+            schema=schema
+        )
+        logging.info(f"Successfully loaded to staging table: {staging_table_name}")
+    except Exception as e:
+        logging.error(f"Error loading to staging table {staging_table_name}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
     logging.info(f"update_columns: {update_columns}")
-    update_set_clauses = ',\n    '.join([f"{col} = source.{col}" for col in update_columns])
-    insert_columns =', '.join(all_columns)
+    update_set_clauses = []
+    schema_types = {field.name: field.field_type for field in schema}
+
+    for col in update_columns:
+        field_type = schema_types.get(col)
+
+        if field_type == "DATETIME":
+            update_set_clauses.append(
+                f"{col} = SAFE_CAST(source.{col} AS DATETIME)"
+            )
+        elif field_type == "DATE":
+            update_set_clauses.append(
+                f"{col} = SAFE_CAST(source.{col} AS DATE)"
+            )
+        elif field_type == "TIMESTAMP":
+            update_set_clauses.append(
+                f"{col} = SAFE_CAST(source.{col} AS TIMESTAMP)"
+            )
+        else:
+            update_set_clauses.append(
+                f"{col} = source.{col}"
+            )
+
+    update_set_clauses = ",\n    ".join(update_set_clauses)
+
+
+    insert_columns = ', '.join(all_columns)
     insert_values = ', '.join([f"source.{col}" for col in all_columns])
 
     merge_query = f"""
@@ -110,8 +168,18 @@ def upsert_to_bq_with_staging(
         VALUES ({insert_values})
     """
     logging.info("Merging...")
-    bq.sql_query_bq(merge_query, return_data=False)
-    logging.info("Done merging!")
+    try:
+        bq.sql_query_bq(merge_query, return_data=False)
+        logging.info("Done merging!")
+    except Exception as e:
+        logging.error(f"Error during merge: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
     drop_query = f"DROP TABLE `{PROJECT_ID}.{DATASET_NAME}.{staging_table_name}`"
-    bq.sql_query_bq(drop_query, return_data=False)
+    try:
+        bq.sql_query_bq(drop_query, return_data=False)
+        logging.info(f"Dropped staging table: {staging_table_name}")
+    except Exception as e:
+        logging.warning(f"Could not drop staging table {staging_table_name}: {e}")

@@ -125,14 +125,95 @@ async def process_single_chat(ticket_id: str, date_extracted: str, semaphore: as
         logging.info(f"Ticket ID: {ticket_id}")
         processor = await ConvoDataExtract.create(ticket_id, api_key=OPENAI_API_KEY)
         tokens = processor.data.get("tokens")
-        new_df = pd.DataFrame([processor.data.get("data")])
+        model_used = processor.data.get("model", "unknown")
+        
+        data = processor.data.get("data", {})
+        
+        expected_fields = [
+            'service_category', 'summary', 'intent_rating', 'engagement_rating',
+            'clarity_rating', 'resolution_rating', 'sentiment_rating', 'location',
+            'schedule_date', 'schedule_time', 'car', 'contact_num', 'payment',
+            'inspection', 'quotation'
+        ]
+        
+        if isinstance(data, dict):
+            filtered_data = {k: v for k, v in data.items() if k in expected_fields}
+            
+            removed_fields = set(data.keys()) - set(filtered_data.keys())
+            if removed_fields:
+                logging.info(f"Removed LiteLLM metadata fields: {removed_fields}")
+        else:
+            filtered_data = data
+        
+        new_df = pd.DataFrame([filtered_data])
         tokens_df = pd.DataFrame([tokens], columns=["tokens"])
-        combined = pd.concat([new_df, tokens_df], axis=1)
+        model_df = pd.DataFrame([model_used], columns=["model"])
+        combined = pd.concat([new_df, tokens_df, model_df], axis=1)
         combined['date_extracted'] = date_extracted
         combined['date_extracted'] = pd.to_datetime(combined['date_extracted'], errors='coerce')
         combined = set_timezone(combined, "date_extracted", target_tz=MNL_TZ)
+        
+        combined = convert_schedule_fields(combined)
+        
         combined.insert(0, 'ticket_id', ticket_id)
+        
+        logging.info(f"Final columns for ticket {ticket_id}: {combined.columns.tolist()}")
+        
         return combined
+
+def convert_schedule_fields(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert schedule_date and schedule_time fields to proper datetime formats for BigQuery.
+    
+    - schedule_date: Convert to DATETIME (YYYY-MM-DD HH:MM:SS)
+    - schedule_time: Keep as STRING or convert to TIME format
+    """
+    if 'schedule_date' in df.columns:
+        df['schedule_date'] = pd.to_datetime(df['schedule_date'], errors='coerce')
+        if 'schedule_time' in df.columns:
+            def combine_date_time(row):
+                if pd.notna(row['schedule_date']):
+                    date_part = row['schedule_date']
+                    time_str = row.get('schedule_time', '')
+                    
+                    if time_str and pd.notna(time_str) and time_str.strip():
+                        try:
+                            time_str = str(time_str).strip().upper()
+                            time_str = time_str.replace(' ', '')
+                            
+                            if 'AM' in time_str or 'PM' in time_str:
+                                time_obj = pd.to_datetime(time_str, format='%I%p', errors='coerce')
+                                if pd.isna(time_obj):
+                                    time_obj = pd.to_datetime(time_str, format='%I:%M%p', errors='coerce')
+                                
+                                if pd.notna(time_obj):
+                                    return pd.Timestamp(
+                                        year=date_part.year,
+                                        month=date_part.month,
+                                        day=date_part.day,
+                                        hour=time_obj.hour,
+                                        minute=time_obj.minute
+                                    )
+                        except Exception as e:
+                            logging.warning(f"Could not parse time '{time_str}': {e}")
+                    
+                    return pd.Timestamp(
+                        year=date_part.year,
+                        month=date_part.month,
+                        day=date_part.day,
+                        hour=0,
+                        minute=0,
+                        second=0
+                    )
+                return None
+            
+            df['schedule_date'] = df.apply(combine_date_time, axis=1)
+        else:
+            df['schedule_date'] = df['schedule_date'].apply(
+                lambda x: pd.Timestamp(x.year, x.month, x.day, 0, 0, 0) if pd.notna(x) else None
+            )
+    
+    return df
 
 async def process_chat(ticket_ids: pd.Series):
     date_extracted = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S")

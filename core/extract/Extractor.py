@@ -261,22 +261,69 @@ class Extractor:
                 date_filter="datecreated",
                 limit=None
             )
+            
+            if chats.empty:
+                logging.warning("No recent tickets found for conversation analysis")
+                return ExtractionResponse(
+                    count="0",
+                    data=[],
+                    status=ResponseStatus.SUCCESS,
+                    message="No recent tickets to process"
+                )
+            
+            logging.info(f"Processing {len(chats)} tickets for conversation analysis")
+            
             ticket_messages_df = await process_chat(chats)
+            
+            if ticket_messages_df.empty:
+                logging.warning("No chat data processed")
+                return ExtractionResponse(
+                    count="0",
+                    data=[],
+                    status=ResponseStatus.ERROR,
+                    message="Failed to process chat data"
+                )
+            
+            logging.info(f"Processed chat data shape: {ticket_messages_df.shape}")
+            logging.info(f"Processed chat data columns: {ticket_messages_df.columns.tolist()}")
+            
             geolocation = process_address(ticket_messages_df, self.geocoder)
             ticket_messages_df = pd.concat([ticket_messages_df, geolocation], axis=1)
             ticket_messages_df = tag_viable(ticket_messages_df)
             ticket_messages_df = drop_cols(ticket_messages_df, "score", "input_address", "lat", "lng", "error")
+            
+            metadata_cols = [col for col in ticket_messages_df.columns if 'metadata' in col.lower()]
+            if metadata_cols:
+                logging.warning(f"Dropping metadata columns before BigQuery load: {metadata_cols}")
+                ticket_messages_df = drop_cols(ticket_messages_df, *metadata_cols)
+            
+            if ticket_messages_df.empty:
+                logging.error("DataFrame became empty after processing")
+                return ExtractionResponse(
+                    count="0",
+                    data=[],
+                    status=ResponseStatus.ERROR,
+                    message="DataFrame became empty after processing"
+                )
+            
+            logging.info(f"Final DataFrame shape before BigQuery: {ticket_messages_df.shape}")
             logging.info("Generating schema and loading data to BigQuery...")
+            
             schema = prepare_and_load_to_bq(self.bigquery, ticket_messages_df, "convo_analysis", load_data=False)
             upsert_to_bq_with_staging(self.bigquery, ticket_messages_df, schema, "convo_analysis")
+            
             logging.info("Done loading to BigQuery!")
             return ticket_messages_df.fillna(value=0).to_dict(orient="records")
+            
         except Exception as e:
+            import traceback
             logging.error(f"Exception occurred while extracting conversation analysis: {e}")
+            traceback.print_exc()
             return ExtractionResponse(
                 count="0",
                 data=[],
-                status=ResponseStatus.ERROR
+                status=ResponseStatus.ERROR,
+                message=str(e)
             )
 
     def clear_all_caches(self):
