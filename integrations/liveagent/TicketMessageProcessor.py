@@ -1,9 +1,6 @@
 from configs.config import ENV
-from configs.constants import (
-    CONCURRENT_LIMIT,
-    LIVEAGENT_MGO_SPECIAL_USER_ID,
-    LIVEAGENT_MGO_SYSTEM_USER_ID
-)
+from integrations.liveagent import liveagent_conf as conf
+
 from integrations.liveagent import LiveAgentClient
 from integrations.bigquery import BigQueryUtils
 from integrations.liveagent import User
@@ -103,7 +100,7 @@ class TicketMessageProcessor:
         self,
         session: aiohttp.ClientSession,
         user_ids: List[str],
-        concurrent_limit: int = CONCURRENT_LIMIT
+        concurrent_limit: int = conf.MAX_CONCURRENT_LIMIT
     ) -> Dict[str, Dict]:
         if not user_ids:
             return {}
@@ -167,7 +164,7 @@ class TicketMessageProcessor:
         session: aiohttp.ClientSession,
         user_ids: List[str],
         chunk_size: int = 50,
-        concurrent_limit: int = CONCURRENT_LIMIT
+        concurrent_limit: int = conf.MAX_CONCURRENT_LIMIT
     ) -> Dict[str, Dict]:
         if len(user_ids) <= chunk_size:
             return await self.fetch_users_batch(session, user_ids, concurrent_limit)
@@ -214,7 +211,7 @@ class TicketMessageProcessor:
         # - Sends HTML text to clients
         # - message_format: 'H'
 
-        if message_userid == LIVEAGENT_MGO_SYSTEM_USER_ID:
+        if message_userid == conf.MGO_SYSTEM_USER_ID:
             return {
                 "sender_name": "System",
                 "sender_type": "system",
@@ -222,7 +219,7 @@ class TicketMessageProcessor:
                 "receiver_type": "client"
             }
 
-        if message_userid == LIVEAGENT_MGO_SPECIAL_USER_ID:
+        if message_userid == conf.MGO_SPECIAL_USER_ID:
             return {
                 "sender_name": "MechaniGo.ph",
                 "sender_type": "system",
@@ -241,7 +238,7 @@ class TicketMessageProcessor:
         else:
             agent_info = self.agent_cache.get(ticket_agentid)
             if agent_info:
-                if agent_info["id"] == LIVEAGENT_MGO_SPECIAL_USER_ID:
+                if agent_info["id"] == conf.MGO_SPECIAL_USER_ID:
                     agent_name = "MechaniGo.ph"
                 else:
                     agent_name = agent_info.get("name", "Unknown Agent")
@@ -267,7 +264,7 @@ class TicketMessageProcessor:
             await self._load_agents_from_bq()
 
         await self.preload_users_from_bq(unique_user_ids)
-        await self.fetch_user_in_chunks(session, list(unique_user_ids), chunk_size=50, concurrent_limit=CONCURRENT_LIMIT)
+        await self.fetch_user_in_chunks(session, list(unique_user_ids), chunk_size=50, concurrent_limit=conf.MAX_CONCURRENT_LIMIT)
 
         processed_messages = []
 

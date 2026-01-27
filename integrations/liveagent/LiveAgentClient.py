@@ -1,11 +1,7 @@
 from typing import Dict, List, Literal, Optional, Any
 
 from integrations.liveagent import LiveAgentAPIResponse, ResponseStatus
-from configs.constants import (
-    THROTTLE_DELAY, MAX_CONCURRENT_REQUESTS,
-    LIVEAGENT_API_MAX_PAGES,
-    BASE_URL
-)
+from integrations.liveagent import liveagent_conf as conf
 
 import asyncio
 import aiohttp
@@ -27,16 +23,16 @@ class LiveAgentClient:
         session: aiohttp.ClientSession,
         base_url: Optional[str] = None,
         throttle_delay: Optional[float] = None,
-        max_concurrent_requests: int = MAX_CONCURRENT_REQUESTS
+        max_concurrent_requests: int = conf.MAX_CONCURRENT_REQUESTS
     ):
         if not api_key:
             raise ValueError("API key cannot be empty.")
 
         self.api_key = api_key
         self.session = session
-        self.base_url = base_url or BASE_URL
+        self.base_url = base_url or conf.BASE_URL
         self.headers = self.default_headers()
-        self.throttle_delay = throttle_delay or THROTTLE_DELAY
+        self.throttle_delay = throttle_delay or conf.THROTTLE_DELAY
         self.semaphore = asyncio.Semaphore(max_concurrent_requests)
         self.logger = logging.getLogger(__name__)
 
@@ -191,7 +187,7 @@ class LiveAgentClient:
         session: aiohttp.ClientSession,
         endpoint: str,
         payload: Optional[Dict[str, Any]] = None,
-        max_pages: int = LIVEAGENT_API_MAX_PAGES
+        max_pages: int = conf.MAX_PAGES
     ) -> List[Dict[str, Any]]:
         """
         Generic pagination utility for any LiveAgent endpoint.
