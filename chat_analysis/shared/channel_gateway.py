@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from typing import (
     Protocol,
@@ -9,10 +8,13 @@ from typing import (
     Dict,
     Any
 )
-import asyncio
 import aiohttp
 
-from integrations.liveagent import LiveAgentClient
+from integrations.liveagent import (
+    LiveAgentClient,
+    ResponseStatus,
+    Agent
+)
 # ManyChatSession
 
 
@@ -37,39 +39,30 @@ class ChannelAdapter(Protocol):
     ) -> List[Dict[str, Any]]:
         ...
 
-def _run_sync(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    
-    if loop and loop.is_running():
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            fut = executor.submit(lambda: asyncio.run(coro))
-            return fut.result(timeout=30)
-    return asyncio.run(coro)
 
 # Different Adapters here
 class LiveAgentAdapter:
     name = "liveagent"
 
-    def __init__(self, api_key: str, session: aiohttp.ClientSession, client: LiveAgentClient):
+    def __init__(
+        self,
+        api_key: str,
+        session: aiohttp.ClientSession,
+        client: Optional[LiveAgentClient] = None
+    ):
         self.api_key = api_key
         self.session = session
         self.client = client
+        self.agent_api = Agent(client=self.client)
 
-    async def _fetch_messages_async(self, user_id: str, limit: int) -> List[Dict[str, Any]]:
-        async with self.session as session:
-            client = None
+    async def fetch_messages(self, user_id: str, limit: int) -> List[Dict[str, Any]]:
+        return []
 
-    def fetch_messages(self, user_id: str, limit: int) -> List[Dict[str, Any]]:
-        ...
-
-    def fetch_messages(self, user_id: str, limit: int) -> List[Dict[str, Any]]:
-        ...
-
-    def fetch_agent_data(self, user_id: str) -> Dict[str, Any]:
-        ...
+    async def fetch_agent_data(self, user_id: str) -> Dict[str, Any]:
+        response = await self.agent_api.get_agent_by_id(session=self.session, agent_id=user_id)
+        if response and response.status == ResponseStatus.SUCCESS and response.data:
+            return response.data[0] if isinstance(response.data, list) else response.data
+        return {}
 
     def normalize_messages(
         self,

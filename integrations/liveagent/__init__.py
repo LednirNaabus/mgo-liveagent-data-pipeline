@@ -8,6 +8,7 @@ from integrations.liveagent.models import (
 liveagent_conf = LiveAgentClientBaseConfiguration()
 
 from integrations.liveagent.User import User
+from integrations.liveagent.Agent import Agent
 from integrations.liveagent.TicketMessageProcessor import TicketMessageProcessor
 from integrations.liveagent.LiveAgentClient import LiveAgentClient
 
@@ -19,5 +20,6 @@ __all__ = [
     "ResponseStatus",
     "LiveAgentClient",
     "liveagent_conf",
+    "Agent",
     "User"
 ]
