@@ -40,3 +40,16 @@ class Agent:
             payload,
             max_page
         )
+
+    async def get_agent_by_id(
+        self,
+        session: aiohttp.ClientSession,
+        agent_id: str
+    ) -> ExtractionResponse:
+        if not agent_id:
+            raise ValueError("agent_id is required.")
+        return await self.client.make_request(
+            session=session,
+            endpoint=f"{self.endpoint}/{agent_id}",
+            method="GET"
+        )
