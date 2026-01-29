@@ -4,8 +4,15 @@ from integrations.liveagent.models.ResponsesModel import (
     ResponseStatus
 )
 
+from integrations.liveagent.models.schemas import (
+    AGENTS_SCHEMA,
+    TAGS_SCHEMA
+)
+
 __all__ = [
     "LiveAgentAPIResponse",
     "ExtractionResponse",
-    "ResponseStatus"
+    "ResponseStatus",
+    "AGENTS_SCHEMA",
+    "TAGS_SCHEMA"
 ]

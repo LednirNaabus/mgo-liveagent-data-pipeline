@@ -1,5 +1,4 @@
-from integrations.liveagent import ExtractionResponse
-from integrations.liveagent import LiveAgentClient
+from integrations.liveagent import LiveAgentClient, LiveAgentAPIResponse
 from typing import Dict, Any
 import aiohttp
 import logging
@@ -11,7 +10,16 @@ logging.basicConfig(
 
 class Agent:
     """
-    Docstring for Agent
+    LiveAgent `/agents` endpoint wrapper.
+
+    **Responsibilities**:
+    - Fetches paginated agent lists via `LiveAgentClient.paginate`.
+    - Fetches a single agent by ID via `LiveAgentClient.make_request`.
+
+    :param client: Base client that interacts with the LiveAgent API.
+    :type client: `LiveAgentClient`
+    :param endpoint: API endpoint (default: `"agents"`).
+    :type endpoint: str
     """
     def __init__(self, client: LiveAgentClient):
         self.client = client
@@ -30,13 +38,30 @@ class Agent:
         max_page: int,
         per_page: int,
         payload: Dict[str, Any] = None
-    ) -> ExtractionResponse:
+    ) -> LiveAgentAPIResponse:
         if payload is None:
             payload = self._default_payload()
         payload["_perPage"] = per_page
-        return await self.client.paginate(
+        response = await self.client.paginate(
             session,
             self.endpoint,
             payload,
             max_page
+        )
+        return LiveAgentAPIResponse(
+            success=True,
+            data=response
+        )
+
+    async def get_agent_by_id(
+        self,
+        session: aiohttp.ClientSession,
+        agent_id: str
+    ) -> LiveAgentAPIResponse:
+        if not agent_id:
+            raise ValueError("agent_id is required.")
+        return await self.client.make_request(
+            session=session,
+            endpoint=f"{self.endpoint}/{agent_id}",
+            method="GET"
         )
