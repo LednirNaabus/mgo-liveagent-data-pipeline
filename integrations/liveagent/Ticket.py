@@ -1,8 +1,7 @@
 from integrations.liveagent import (
     TicketMessageProcessor,
     ExtractionResponse,
-    LiveAgentClient,
-    User
+    LiveAgentClient
 )
 from typing import Dict, List, Any
 import pandas as pd
@@ -17,16 +16,14 @@ logging.basicConfig(
 
 class Ticket:
     """
-    Class for `/tickets` LiveAgent API endpoint.
+    LiveAgent `/tickets` endpoint wrapper.
     """
     def __init__(
         self,
         client: LiveAgentClient,
-        user: User,
         message_processor: TicketMessageProcessor
     ):
         self.client = client
-        self.user = user
         self.message_processor = message_processor
         self.endpoint = "tickets"
         self.ticket_metadata_cache = {}
@@ -51,7 +48,7 @@ class Ticket:
         payload: Dict[str, Any] = None,
         max_pages: int = 5,
         per_page: int = 10
-    ) -> ExtractionResponse:
+    ) -> pd.DataFrame:
         if payload is None:
             payload = self._default_payload()
         payload["_perPage"] = per_page
