@@ -58,10 +58,6 @@ class ConvoData:
             per_page=per_page,
             max_pages=max_pages
         )
-
-        # print("========== FROM CONVODATA ==========")
-        # print(f"messages: {messages}")
-
         return ExtractionResponse(
             status=ResponseStatus.SUCCESS,
             count=len(messages),

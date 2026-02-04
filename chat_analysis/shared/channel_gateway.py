@@ -37,7 +37,6 @@ class ChannelAdapter(Protocol):
     """
     name: str
 
-    # async def fetch_tickets(self, date: pd.Timestamp, filter_field: FilterField, max_pages: int, per_page: int) -> List[Dict[str, Any]]:
     async def fetch_tickets(self, filter_field: FilterField, max_pages: int, per_page: int) -> pd.DataFrame:
         ...
 

@@ -22,7 +22,7 @@ async def process_tickets(request: Request, background_tasks: BackgroundTasks) -
     bq_client = get_bq_utils(request=request, table_id="tickets_test")
     gateway = get_channel_gateway(session=session, bq_client=bq_client)
     extractor = ConvoData(gateway=gateway)
-    response = await extractor.fetch_tickets(per_page=10, max_pages=2)
+    response = await extractor.fetch_tickets()
     rows = response.data or []
 
     # Do BQ stuff
