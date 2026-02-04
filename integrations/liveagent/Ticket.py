@@ -61,7 +61,7 @@ class Ticket:
 
         for ticket in data:
             ticket["owner_name"] = ticket.get("owner_name", None)
-            ticket["agentId"] = ticket.get("agentid", None)
+            # ticket["agentId"] = ticket.get("agentid", None)
             ticket["tags"] = ','.join(ticket["tags"]) if ticket.get("tags") else ""
             ticket["date_due"] = ticket.get("date_due")
             ticket["date_deleted"] = ticket.get("date_deleted")

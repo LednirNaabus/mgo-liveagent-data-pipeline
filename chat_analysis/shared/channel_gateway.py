@@ -12,12 +12,15 @@ from typing import (
 import pandas as pd
 import aiohttp
 
+from integrations.liveagent.utils import (
+    resolve_extraction_date,
+    set_ticket_filter,
+    FilterField
+)
 from integrations.liveagent import (
     TicketMessageProcessor,
     LiveAgentClient,
     ResponseStatus,
-    FilterField,
-    set_ticket_filter,
     Ticket,
     Agent,
     Tag
@@ -34,7 +37,8 @@ class ChannelAdapter(Protocol):
     """
     name: str
 
-    async def fetch_tickets(self, date: pd.Timestamp, filter_field: FilterField, max_pages: int, per_page: int) -> List[Dict[str, Any]]:
+    # async def fetch_tickets(self, date: pd.Timestamp, filter_field: FilterField, max_pages: int, per_page: int) -> List[Dict[str, Any]]:
+    async def fetch_tickets(self, filter_field: FilterField, max_pages: int, per_page: int) -> pd.DataFrame:
         ...
 
     async def fetch_messages(self, ticket_id: str, user_id: str, per_page: int, max_pages: int) -> List[Dict[str, Any]]:
@@ -75,6 +79,7 @@ class LiveAgentAdapter:
       - an optional `BigQueryUtils` instance
     """
     name = "liveagent"
+    MAX_PAGES = 100 # both for per_page and max_page
 
     def __init__(
         self,
@@ -93,15 +98,12 @@ class LiveAgentAdapter:
 
     async def fetch_tickets(
         self,
-        date: pd.Timestamp,
         filter_field: Union[str, FilterField] = FilterField.DATE_CHANGED,
-        per_page: int = 5,
-        max_pages: int = 10
-    ) -> List[Dict[str, Any]]:
-        if isinstance(date, str):
-            date = pd.Timestamp(date)
-
-        filters = set_ticket_filter(date, filter_field)
+        per_page: int = MAX_PAGES,
+        max_pages: int = MAX_PAGES
+    ) -> pd.DataFrame:
+        date = resolve_extraction_date()
+        filters = set_ticket_filter(date=date, filter_field=filter_field)
         ticket_payload = {
             "_perPage": per_page,
             "_filters": filters
@@ -119,10 +121,12 @@ class LiveAgentAdapter:
 
             if raw.empty:
                 return []
-            return raw.to_dict(orient="records")
+            return raw
         except Exception as e:
+            # TODO:
+            # Use logs later
             print(f"Exception occurred: {e}")
-            return None
+            raise
 
     async def fetch_messages(
         self,

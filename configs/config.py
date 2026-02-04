@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Dict
+import pytz
 
 from dotenv import dotenv_values, load_dotenv
 
@@ -72,3 +73,4 @@ def load_environment():
 
 # Create a singleton instance of environment variables
 ENV = load_environment()
+PH_TZ = pytz.timezone("Asia/Manila")

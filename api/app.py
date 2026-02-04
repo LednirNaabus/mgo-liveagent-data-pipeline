@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from api import (
+    tickets_router,
     agents_router,
     tags_router,
     settings
@@ -23,6 +24,7 @@ app = FastAPI(
 
 app.include_router(agents_router, prefix="/extract", tags=["agents"])
 app.include_router(tags_router, prefix="/extract", tags=["tags"])
+app.include_router(tickets_router, prefix="/extract", tags=["tickets"])
 
 @app.get("/")
 def root():

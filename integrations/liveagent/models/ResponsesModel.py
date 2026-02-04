@@ -18,6 +18,6 @@ class LiveAgentAPIResponse:
 @dataclass
 class ExtractionResponse:
     status: ResponseStatus = None
-    count: str = None
+    count: int = None
     data: List[Dict[str, Any]] = None
     message: str = None
