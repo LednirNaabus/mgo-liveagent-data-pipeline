@@ -1,5 +1,29 @@
 from google.cloud.bigquery import SchemaField
 
+TICKETS_SCHEMA = [
+    SchemaField("id", "STRING"),
+    SchemaField("owner_contactid", "STRING"),
+    SchemaField("owner_email", "STRING"),
+    SchemaField("owner_name", "STRING"),
+    SchemaField("departmentid", "STRING"),
+    SchemaField("agentid", "STRING"),
+    SchemaField("status", "STRING"),
+    SchemaField("tags", "STRING"),
+    SchemaField("code", "STRING"),
+    SchemaField("channel_type", "STRING"),
+    SchemaField("date_created", "DATETIME"),
+    SchemaField("date_changed", "DATETIME"),
+    SchemaField("date_resolved", "DATETIME"),
+    SchemaField("last_activity", "DATETIME"),
+    SchemaField("last_activity_public", "DATETIME"),
+    SchemaField("public_access_urlcode", "STRING"),
+    SchemaField("subject", "STRING"),
+    SchemaField("custom_fields", "STRING"),
+    SchemaField("date_due", "DATETIME"),
+    SchemaField("date_deleted", "DATETIME"),
+    SchemaField("datetime_extracted", "DATETIME"),
+]
+
 AGENTS_SCHEMA = [
     SchemaField("id", "STRING", "NULLABLE"),
     SchemaField("name", "STRING", "NULLABLE"),

@@ -14,18 +14,15 @@ from integrations.liveagent.Ticket import Ticket
 from integrations.liveagent.TicketMessageProcessor import TicketMessageProcessor
 from integrations.liveagent.LiveAgentClient import LiveAgentClient
 
-from integrations.liveagent.utils import FilterField, set_ticket_filter
 
 __all__ = [
     "LiveAgentClientBaseConfiguration",
     "TicketMessageProcessor",
     "LiveAgentAPIResponse",
     "ExtractionResponse",
-    "set_ticket_filter",
     "ResponseStatus",
     "LiveAgentClient",
     "liveagent_conf",
-    "FilterField",
     "Ticket",
     "Agent",
     "User",

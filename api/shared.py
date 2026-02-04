@@ -6,12 +6,14 @@ from fastapi import (
     status
 )
 
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 import pytz
 
 PH_TZ = pytz.timezone("Asia/Manila")
 
 __all__ = [
+    "jsonable_encoder",
     "BackgroundTasks",
     "HTTPException",
     "JSONResponse",

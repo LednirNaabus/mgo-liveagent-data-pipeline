@@ -5,6 +5,7 @@ from integrations.liveagent.models.ResponsesModel import (
 )
 
 from integrations.liveagent.models.schemas import (
+    TICKETS_SCHEMA,
     AGENTS_SCHEMA,
     TAGS_SCHEMA
 )
@@ -13,6 +14,7 @@ __all__ = [
     "LiveAgentAPIResponse",
     "ExtractionResponse",
     "ResponseStatus",
+    "TICKETS_SCHEMA",
     "AGENTS_SCHEMA",
     "TAGS_SCHEMA"
 ]

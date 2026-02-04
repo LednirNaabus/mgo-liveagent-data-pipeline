@@ -283,6 +283,18 @@ class BigQueryUtils:
                         pass
             return None
 
+        def _stringify_datetimes(rows_in: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            fixed: List[Dict[str, Any]] = []
+            for row in rows_in:
+                out: Dict[str, Any] = {}
+                for k, v in row.items():
+                    if isinstance(v, dt.datetime):
+                        out[k] = v.isoformat()
+                    else:
+                        out[k] = v
+                fixed.append(out)
+            return fixed
+
         stream_ok = False
         fallback_used = False
         error_text: Optional[str] = None
@@ -307,7 +319,13 @@ class BigQueryUtils:
                     exc,
                     getattr(exc, "__dict__", {}),
                 )
-            self.load_json(normalized_rows, schema=schema_fields, autodetect=False, create_if_needed=True)
+            # self.load_json(normalized_rows, schema=schema_fields, autodetect=False, create_if_needed=True)
+            self.load_json(
+                _stringify_datetimes(normalized_rows),
+                schema=schema_fields,
+                autodetect=False,
+                create_if_needed=True
+            )
         return {"stream_ok": stream_ok, "fallback_used": fallback_used, "error": error_text}
 
     def stream_rows(self, table_id: Optional[str], rows: Iterable[Dict[str, Any]], *, schema: Sequence[SchemaField], key_columns: Optional[Sequence[str]] = None) -> None:
@@ -476,6 +494,8 @@ class BigQueryUtils:
 
     def _normalize_scalar(self, field: SchemaField, value: Any) -> Any:
         if value is None:
+            return None
+        if pd.isna(value):
             return None
         ftype = field.field_type.upper()
         if ftype == "JSON":
