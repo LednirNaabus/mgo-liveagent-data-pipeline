@@ -52,9 +52,9 @@ localhost:8080/docs
 
 #### For branch `feat-add-236-tickets-and-messages`
 
-- [ ] Tickets route
+- [x] Tickets route
 
-- [ ] Messages route
+- [x] Messages route
 
 - [ ] Finalize return structure for methods in `ChannelAdapter` (`channel_gateway.py`)
 
