@@ -2,7 +2,11 @@ import pandas as pd
 from typing import Optional, Union
 from chat_analysis.shared.channel_gateway import ChannelGateway
 from integrations.liveagent import ExtractionResponse, ResponseStatus
-from integrations.liveagent.utils import FilterField, process_tickets
+from integrations.liveagent.utils import (
+    FilterField,
+    process_tickets,
+    process_ticket_messages
+)
 
 class ConvoData:
     def __init__(
@@ -52,16 +56,13 @@ class ConvoData:
         
     # for conversation data
     async def fetch_conversation(self, per_page: int, max_pages: int) -> ExtractionResponse:
-        messages = await self._adapter.fetch_messages(
-            ticket_id=self.ticket_id,
-            user_id=self.user_id,
-            per_page=per_page,
-            max_pages=max_pages
-        )
+        messages = await self._adapter.fetch_messages(per_page=per_page, max_pages=max_pages)
+        print(f"messages:{messages}")
+        data = process_ticket_messages(messages)
         return ExtractionResponse(
             status=ResponseStatus.SUCCESS,
-            count=len(messages),
-            data=messages
+            count=len(data),
+            data=data.to_dict(orient="records")
         )
 
     async def fetch_tags(self) -> ExtractionResponse:

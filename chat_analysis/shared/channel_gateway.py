@@ -13,8 +13,9 @@ import pandas as pd
 import aiohttp
 
 from integrations.liveagent.utils import (
-    resolve_extraction_date,
+    prev_batch_tickets,
     set_ticket_filter,
+    recent_tickets,
     FilterField
 )
 from integrations.liveagent import (
@@ -40,7 +41,7 @@ class ChannelAdapter(Protocol):
     async def fetch_tickets(self, filter_field: FilterField, max_pages: int, per_page: int) -> pd.DataFrame:
         ...
 
-    async def fetch_messages(self, ticket_id: str, user_id: str, per_page: int, max_pages: int) -> List[Dict[str, Any]]:
+    async def fetch_messages(self, per_page: int, max_pages: int) -> List[Dict[str, Any]]:
         ...
 
     async def fetch_agents(self, per_page: int, max_pages: int) -> List[Dict[str, Any]]:
@@ -101,7 +102,7 @@ class LiveAgentAdapter:
         per_page: int = MAX_PAGES,
         max_pages: int = MAX_PAGES
     ) -> pd.DataFrame:
-        date = resolve_extraction_date()
+        date = prev_batch_tickets()
         filters = set_ticket_filter(date=date, filter_field=filter_field)
         ticket_payload = {
             "_perPage": per_page,
@@ -129,22 +130,35 @@ class LiveAgentAdapter:
 
     async def fetch_messages(
         self,
-        ticket_id: str,
-        user_id: str,
         per_page: int,
         max_pages: int
     ) -> List[Dict[str, Any]]:
-        # TODO:
-        # - internal calls to LiveAgent API /ticket to extract the ff:
-        # - ticket_ids, ticket_agentids, ticket_owner_names
-        return await self.ticket_api.fetch_ticket_message(
-            ticket_id=ticket_id,
-            ticket_agent_id=user_id,
-            ticket_owner_name=None,
+        tickets_batch = recent_tickets(
+            bq_client=self.bq_client,
+            table_name="tickets",
+            limit=per_page
+        )
+
+        if isinstance(tickets_batch, pd.DataFrame):
+            ticket_ids = tickets_batch["id"].tolist()
+            ticket_agentids = tickets_batch["agentid"].tolist()
+            ticket_owner_names = tickets_batch["owner_name"].tolist()
+        else:
+            raise ValueError("Excpected DataFrame. Unable to fetch recent tickets.")
+        
+        if not ticket_ids:
+            return None
+
+        messages = await self.ticket_api.fetch_messages_with_sender_receiver(
+            ticket_ids=ticket_ids,
+            ticket_agentids=ticket_agentids,
+            ticket_owner_names=ticket_owner_names,
             max_page=max_pages,
             per_page=per_page,
             session=self.session
         )
+
+        return messages
 
     async def fetch_agents(self, per_page: int, max_pages: int) -> List[Dict[str, Any]]:
         response = await self.agent_api.get_agents(session=self.session, max_page=max_pages, per_page=per_page)

@@ -24,6 +24,37 @@ TICKETS_SCHEMA = [
     SchemaField("datetime_extracted", "DATETIME"),
 ]
 
+MESSAGES_SCHEMA = [
+    SchemaField("ticket_id", "STRING", mode="NULLABLE"),
+    SchemaField("owner_name", "STRING", mode="NULLABLE"),
+    SchemaField("agentid", "STRING", mode="NULLABLE"),
+    SchemaField("agent_name", "STRING", mode="NULLABLE"),
+    SchemaField("id", "STRING", mode="NULLABLE"),
+    SchemaField("parent_id", "STRING", mode="NULLABLE"),
+    SchemaField("userid", "STRING", mode="NULLABLE"),
+    SchemaField("user_full_name", "STRING", mode="NULLABLE"),
+    SchemaField("type", "STRING", mode="NULLABLE"),
+    SchemaField("status", "STRING", mode="NULLABLE"),
+    SchemaField("datecreated", "DATETIME", mode="NULLABLE"),
+    SchemaField("datefinished", "DATETIME", mode="NULLABLE"),
+    SchemaField("sort_order", "INTEGER", mode="NULLABLE"),
+    SchemaField("mail_msg_id", "STRING", mode="NULLABLE"),
+    SchemaField("pop3_msg_id", "STRING", mode="NULLABLE"),
+    SchemaField("message_id", "STRING", mode="NULLABLE"),
+    SchemaField("message_userid", "STRING", mode="NULLABLE"),
+    SchemaField("message_type", "STRING", mode="NULLABLE"),
+    SchemaField("message_datecreated", "DATETIME", mode="NULLABLE"),
+    SchemaField("message_format", "STRING", mode="NULLABLE"),
+    SchemaField("message", "STRING", mode="NULLABLE"),
+    SchemaField("message_visibility", "STRING", mode="NULLABLE"),
+    SchemaField("reference_code", "STRING", mode="NULLABLE"),
+    SchemaField("sender_name", "STRING", mode="NULLABLE"),
+    SchemaField("sender_type", "STRING", mode="NULLABLE"),
+    SchemaField("receiver_name", "STRING", mode="NULLABLE"),
+    SchemaField("receiver_type", "STRING", mode="NULLABLE"),
+    SchemaField("datetime_extracted", "DATETIME", mode="NULLABLE"),
+]
+
 AGENTS_SCHEMA = [
     SchemaField("id", "STRING", "NULLABLE"),
     SchemaField("name", "STRING", "NULLABLE"),
